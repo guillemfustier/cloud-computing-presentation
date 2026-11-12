@@ -1,7 +1,5 @@
 # 03 Genesis World
 
-## English
-
 **Category:** open-source physical-AI simulation framework, configurable for cloud accelerators. **Relevance:** medium-high as an independent software alternative; **not** a hosted managed training subscription.
 
 ### What it is
