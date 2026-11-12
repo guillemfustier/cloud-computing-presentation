@@ -1,7 +1,4 @@
 # 01 The Construct
-
-## English
-
 **Category:** browser-accessible robotics development and learning environment. **Relevance:** medium to high for cloud **simulation**, lower for managed large-scale RL **training**.
 
 ### What it provides
