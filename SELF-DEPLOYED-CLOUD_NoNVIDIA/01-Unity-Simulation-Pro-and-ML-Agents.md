@@ -1,7 +1,4 @@
 # 01 Unity Simulation Pro and ML Agents
-
-## English
-
 **Category:** robotics simulation software + separate AI training toolkit, deployable on cloud machines. **Relevance:** high as an alternative *software stack* to Isaac Sim + Isaac Lab, **not** a managed cloud service.
 
 ### What is Unity Simulation Pro?
