@@ -1,7 +1,5 @@
 # 02 Webots cloud
 
-## English
-
 **Category:** cloud-hosted interactive robotics simulations and reproducible demos/benchmarks. **Relevance:** medium for cloud simulation and sharing; **not** a documented managed RL training platform.
 
 ### What the official guide confirms
