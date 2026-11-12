@@ -1,7 +1,5 @@
 # 02 MuJoCo Playground
 
-## English
-
 **Category:** open-source physics simulator and robot-learning ecosystem that can be deployed in the cloud. **Relevance:** high as an alternative to the Isaac simulation/training **stack**, but there is no equivalent first-party managed cloud login.
 
 ### Components
