@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robots That Learn in the Cloud</title>
+<style>
+/*@@FONTS@@*/
+:root{
+  --floor:#E6E9EC; --line:#C9CFD5; --line-2:#B4BCC4; --ink:#141A22; --ink-2:#3C4652; --ink-3:#5E6874;
+  --nv:#FF5A1F; --nv-ink:#B83A0B; --on:#3557FF; --on-ink:#2338C2; --self:#1FA37A; --self-ink:#11734F;
+  --tint:var(--ink); --tint-ink:var(--ink); --tint-d:var(--ink); --nv-d:#D9480F; --self-d:#138A63;
+  --display:'Big Shoulders Display', 'Archivo', sans-serif; --body:'Archivo', system-ui, sans-serif; --mono:'JetBrains Mono', ui-monospace, monospace;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--floor);color:var(--ink);overflow:hidden;font-family:var(--body);-webkit-font-smoothing:antialiased}
+::selection{background:var(--ink);color:var(--floor)}
+#stage{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+#frame{position:fixed;left:50%;top:50%;width:1600px;height:900px;transform-origin:0 0;pointer-events:none}
+.slide{position:absolute;inset:0;visibility:hidden;pointer-events:none}
+.slide.on{visibility:visible;pointer-events:auto}
+.slide[data-tint=nv]{--tint:var(--nv);--tint-ink:var(--nv-ink);--tint-d:var(--nv-d)}
+.slide[data-tint=on]{--tint:var(--on);--tint-ink:var(--on-ink);--tint-d:var(--on)}
+.slide[data-tint=self]{--tint:var(--self);--tint-ink:var(--self-ink);--tint-d:var(--self-d)}
+
+/* scrim: floor-coloured wash so copy sits on the floor, not on a card */
+.wash{position:absolute;inset:0;background:linear-gradient(90deg,rgba(230,233,236,.97) 0%,rgba(230,233,236,.96) var(--w,47%),rgba(230,233,236,0) calc(var(--w,47%) + 13%))}
+.wash.full{background:rgba(230,233,236,.82)}
+.wash.top{background:linear-gradient(180deg,rgba(230,233,236,.95) 0%,rgba(230,233,236,.85) 52%,rgba(230,233,236,0) 80%)}
+
+.col{position:absolute;left:96px;top:92px;width:640px}
+.col.wide{width:920px}
+h1,h2{font-family:var(--display);font-weight:900;text-transform:uppercase;line-height:.86;letter-spacing:-.005em;text-wrap:balance}
+h1{font-size:176px}
+h2{font-size:96px;margin-bottom:34px}
+h2 .t{color:var(--tint-d)}
+h3{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:38px;line-height:.95;margin-bottom:10px}
+p,li{font-size:26px;line-height:1.38;color:var(--ink-2);max-width:38ch}
+p.lede{font-size:31px;line-height:1.3;color:var(--ink);max-width:30ch;margin-bottom:26px}
+p + p{margin-top:16px}
+strong{color:var(--ink);font-weight:700}
+code,.mono{font-family:var(--mono);font-size:.84em;letter-spacing:-.01em}
+.cell-tag{display:inline-flex;gap:10px;align-items:center;font-family:var(--mono);font-size:17px;font-weight:600;color:var(--tint-ink);margin-bottom:22px}
+.cell-tag i{display:block;width:16px;height:16px;background:var(--tint)}
+
+/* reveal choreography: visible by default, animated on entry */
+.slide.on .rv{animation:rv .9s var(--ease-out) both;animation-delay:calc(var(--d,0) * 90ms + 420ms)}
+@keyframes rv{from{opacity:0;transform:translateY(26px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+[data-step]{transition:opacity .6s var(--ease-out),transform .6s var(--ease-out),filter .6s var(--ease-out)}
+[data-step].later{opacity:0;transform:translateY(18px);filter:blur(5px)}
+
+/* flow chain */
+.flow{display:flex;align-items:center;gap:0;margin-top:30px}
+.flow .n{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:34px;padding:12px 18px;border:2px solid var(--ink);background:var(--floor);white-space:nowrap}
+.flow .n.hot{background:var(--ink);color:var(--floor)}
+.flow .a{width:52px;height:2px;background:var(--ink);position:relative}
+.flow.sm .n{font-size:26px;padding:8px 14px;text-align:center}
+.flow.sm .n small{display:block;font-family:var(--mono);font-size:13px;font-weight:500;text-transform:none;color:var(--ink-3);margin-top:4px}
+.flow.sm .n.hot small{color:var(--ink)}
+.flow.sm .a{width:30px}
+.tags{display:flex;flex-wrap:wrap;gap:10px}
+.tag{display:inline-block;font-family:var(--mono);font-size:18px;font-weight:600;padding:7px 12px;border:2px solid var(--ink);color:var(--ink);background:var(--floor)}
+.tag.d{background:var(--ink);color:var(--floor)}
+.tag.x{border-color:var(--nv);color:var(--nv-ink);text-decoration:line-through;text-decoration-thickness:2px}
+.flow .a::after{content:"";position:absolute;right:-1px;top:-6px;border:7px solid transparent;border-left:10px solid var(--ink);border-right:0}
+
+/* workflow / steps */
+.steps{list-style:none;counter-reset:s;display:grid;gap:14px;margin-top:8px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:54px 1fr;align-items:baseline;max-width:none;font-size:24px}
+.steps li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);font-weight:600;font-size:18px;color:var(--tint-ink)}
+.steps li b{color:var(--ink);font-weight:700}
+.steps.bul li{grid-template-columns:38px 1fr}
+.steps.bul li::before{content:"";width:16px;height:3px;background:var(--tint);align-self:center;margin-top:-14px}
+
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+.pillars{display:grid;grid-template-columns:repeat(2,1fr);gap:36px;margin-top:6px;max-width:640px}
+.pillars p{font-size:22px}
+.rule{height:2px;background:var(--ink);margin:0 0 14px;width:48px}
+.rule.t{background:var(--tint);width:100%}
+
+/* terminal */
+.term{background:var(--ink);color:#D8DEE5;font-family:var(--mono);font-size:19px;line-height:1.55;padding:20px 24px;box-shadow:0 18px 40px -14px rgba(20,26,34,.45)}
+.term .pr{color:#8A96A3}
+.term .hl{color:#FFB08F}
+.term .ok{color:#7BE0BC}
+.term .ln{white-space:pre;overflow:hidden}
+.term-h{font-family:var(--mono);font-size:15px;color:var(--ink-3);margin:0 0 8px;display:flex;justify-content:space-between}
+
+/* table */
+table{border-collapse:collapse;font-size:22px;width:100%}
+th,td{text-align:left;padding:11px 16px 11px 0;border-bottom:1.5px solid var(--line-2);vertical-align:top;color:var(--ink-2)}
+th{font-family:var(--mono);font-weight:600;font-size:15px;text-transform:uppercase;color:var(--ink-3);border-bottom:2px solid var(--ink)}
+td:first-child{font-weight:700;color:var(--ink)}
+td.num{font-family:var(--mono);font-size:20px;font-variant-numeric:tabular-nums;color:var(--ink)}
+tr.x td{color:var(--nv-ink)}
+
+/* rail */
+#rail{position:fixed;left:0;right:0;bottom:0;height:46px;display:flex;align-items:center;gap:30px;padding:0 28px;background:var(--ink);color:#C9D0D8;font-family:var(--mono);font-size:14px;z-index:5;letter-spacing:.02em}
+#rail .sec{display:flex;align-items:center;gap:10px;color:#fff;font-weight:600;min-width:260px}
+#rail .sec i{width:12px;height:12px;background:var(--rail-tint,#fff);transition:background .5s}
+#rail .kv{display:flex;gap:8px;align-items:center}
+#rail .kv span:first-child{color:#7E8995}
+#rail .sp{flex:1}
+.flap{display:inline-flex}
+.flap b{display:inline-block;font-weight:600;color:#fff;min-width:.62em;text-align:center;background:#232B35;margin-right:1px;padding:2px 1px;border-radius:1px;transform-origin:50% 50%}
+.flap b.sp{background:transparent}
+.flap b.f{animation:flip .34s cubic-bezier(.3,.7,.3,1) both}
+@keyframes flip{0%{transform:rotateX(0)}45%{transform:rotateX(90deg);color:#7E8995}55%{transform:rotateX(-90deg)}100%{transform:rotateX(0)}}
+
+/* minimap route */
+#map{position:fixed;right:26px;top:24px;display:flex;gap:4px;z-index:5}
+#map i{width:14px;height:14px;border:1.5px solid var(--ink-3);background:transparent;transition:all .4s var(--ease-out)}
+#map i.done{background:var(--c,var(--ink-3));border-color:var(--c,var(--ink-3));opacity:.55}
+#map i.cur{background:var(--c,var(--ink));border-color:var(--ink);transform:scale(1.35)}
+
+/* diagrams */
+.dg{position:absolute}
+svg{overflow:visible}
+.node{fill:var(--floor);stroke:var(--ink);stroke-width:2}
+.node.d{fill:var(--ink)}
+.node.t{fill:var(--tint)}
+.lbl{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:24px;fill:var(--ink)}
+.lbl.w{fill:var(--floor)}
+.sub{font-family:var(--mono);font-size:14px;fill:var(--ink-3)}
+.sub.w{fill:#B9C2CC}
+.sub:not(.w):not([style*="fill:var(--ink)"]),.axis{paint-order:stroke;stroke:var(--floor);stroke-width:6px;stroke-linejoin:round}
+.wire{fill:none;stroke:var(--ink);stroke-width:2}
+.wire.t{stroke:var(--tint);stroke-width:3}
+.wire.dash{stroke-dasharray:6 7;animation:dash 1.1s linear infinite}
+.mc circle{transform-origin:150px 125px;transform-box:view-box;animation:mc 2.4s cubic-bezier(.2,.6,.3,1) infinite;opacity:0}
+.mc circle:nth-child(2){animation-delay:.8s}.mc circle:nth-child(3){animation-delay:1.6s}
+@keyframes mc{0%{transform:scale(.6);opacity:.9}100%{transform:scale(5);opacity:0}}
+@keyframes dash{to{stroke-dashoffset:-26}}
+.pk{fill:var(--tint)}
+.axis{font-family:var(--mono);font-size:13px;fill:var(--ink-3);letter-spacing:.12em}
+
+/* platform blocks */
+.plats{display:grid;gap:22px}
+.plat{display:grid;grid-template-columns:270px 1fr;gap:24px;padding-top:16px;border-top:2px solid var(--ink)}
+.plat h3{font-size:36px}
+.plat .k{font-family:var(--mono);font-size:14px;color:var(--tint-ink);font-weight:600;margin-top:6px;text-transform:uppercase}
+.plat p{font-size:21px;max-width:none}
+.plat .no{color:var(--ink);font-weight:600}
+.plat .no::before{content:"";display:inline-block;width:14px;height:2px;background:var(--nv);vertical-align:middle;margin-right:8px}
+
+.chip{display:inline-block;font-family:var(--mono);font-size:14px;font-weight:600;padding:3px 8px;color:#fff;background:var(--c);vertical-align:middle}
+
+
+.big-cap{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:56px;line-height:.9;color:var(--ink)}
+.small{font-size:19px;color:var(--ink-3)}
+.src{font-family:var(--mono);font-size:14px;color:var(--ink-3);line-height:1.6;max-width:none}
+
+#hint{position:fixed;left:28px;top:22px;font-family:var(--mono);font-size:12px;color:var(--ink-3);z-index:5;opacity:.0;transition:opacity .6s}
+#hint.show{opacity:1}
+#loader{position:fixed;inset:0;display:grid;place-items:center;background:var(--floor);z-index:20;font-family:var(--mono);font-size:14px;color:var(--ink-3);transition:opacity .8s}
+#loader.gone{opacity:0;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .slide.on .rv{animation:none}
+  .wire.dash{animation:none}
+  .flap b.sp{background:transparent}
+.flap b.f{animation:none}
+}
+</style>
+</head>
+<body>
+<canvas id="stage" aria-hidden="true"></canvas>
+<div id="loader">loading environments…</div>
+<div id="map" aria-hidden="true"></div>
+<div id="hint">← → navigate · F fullscreen · Q quality</div>
+
+<main id="frame">
+
+<!-- ============ 00 TITLE ============ -->
+<section class="slide" data-scene="title" data-sec="Cloud Computing seminar" data-tint="ink">
+  <div class="wash" style="background:linear-gradient(20deg,rgba(230,233,236,.96) 0%,rgba(230,233,236,.9) 38%,rgba(230,233,236,0) 62%)"></div>
+  <div class="col" style="top:auto;bottom:70px;width:1100px">
+    <h1 class="rv" style="font-size:150px">Robots that learn<br>in the cloud</h1>
+    <p class="lede rv" style="--d:2;max-width:46ch;margin-top:28px">Simulation and robot learning on rented GPUs: NVIDIA's cloud infrastructure, Isaac Sim, Isaac Lab, the alternatives, and a live demo.</p>
+    <p class="small rv" style="--d:3">Cloud Computing · Máster en Sistemas Inteligentes · Universitat Jaume I · 2026</p>
+  </div>
+</section>
+
+<!-- ============ 01 ROUTE ============ -->
+<section class="slide" data-scene="route" data-sec="Route" data-tint="ink">
+  <div class="wash top"></div>
+  <div class="col wide" style="width:1400px">
+    <h2 class="rv">Four stops on one floor</h2>
+    <div class="pair rv" style="--d:2;grid-template-columns:repeat(4,1fr);gap:36px;margin-top:10px">
+      <div><div class="rule" style="background:var(--nv);width:100%"></div><h3>NVIDIA cloud infrastructure</h3><p class="small">Get a GPU, run the pipeline, see the result.</p></div>
+      <div><div class="rule" style="background:var(--nv);width:100%"></div><h3>Isaac in the cloud</h3><p class="small">The world, the training, the GPU, the launch.</p></div>
+      <div><div class="rule" style="background:var(--on);width:100%"></div><h3>Alternatives</h3><p class="small">Online workspaces and open stacks without Isaac.</p></div>
+      <div><div class="rule" style="background:var(--self);width:100%"></div><h3>Live demo</h3><p class="small">A simulator on our own GPU, live in the room.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ P1 · INFRA: THE PROBLEM ============ -->
+<section class="slide" data-scene="infra" data-sec="NVIDIA cloud infrastructure" data-tint="nv">
+  <div class="wash full" style="background:rgba(230,233,236,.8)"></div>
+  <div class="col wide" style="width:1408px;top:72px">
+    <h2 class="rv" style="--d:1">Before the <span class="t">first experiment</span></h2>
+    <div class="rv" style="--d:2">
+      <svg width="1408" height="560" viewBox="0 0 1408 560" aria-label="Three needs: a GPU, an environment, many jobs">
+        <!-- GPU card -->
+        <g transform="translate(90 20)">
+          <rect x="0" y="16" width="12" height="150" fill="var(--ink)"/>
+          <rect class="node" x="12" y="20" width="260" height="140"/>
+          <circle cx="90" cy="90" r="46" fill="none" stroke="var(--ink)" stroke-width="2"/><circle cx="90" cy="90" r="10" fill="var(--ink)"/>
+          <circle cx="196" cy="90" r="46" fill="none" stroke="var(--ink)" stroke-width="2"/><circle cx="196" cy="90" r="10" fill="var(--ink)"/>
+          <g stroke="var(--ink)" stroke-width="2"><path d="M90 44 V136 M44 90 H136"/><path d="M196 44 V136 M150 90 H242"/></g>
+          <rect x="60" y="160" width="160" height="16" fill="var(--nv)"/>
+        </g>
+        <!-- environment window -->
+        <g transform="translate(560 20)">
+          <rect class="node" x="0" y="10" width="290" height="190"/>
+          <rect class="node d" x="0" y="10" width="290" height="30"/>
+          <circle cx="18" cy="25" r="5" fill="var(--nv)"/><circle cx="36" cy="25" r="5" fill="#8A96A3"/><circle cx="54" cy="25" r="5" fill="#8A96A3"/>
+          <rect class="node t" x="22" y="56" width="246" height="36"/><text class="sub" x="145" y="79" text-anchor="middle" style="fill:var(--ink)">drivers · CUDA</text>
+          <rect class="node" x="22" y="100" width="246" height="36"/><text class="sub" x="145" y="123" text-anchor="middle">Python · Docker</text>
+          <rect class="node" x="22" y="144" width="246" height="36" style="stroke-dasharray:6 6"/><text class="sub" x="145" y="167" text-anchor="middle">your code</text>
+        </g>
+        <!-- many parallel jobs -->
+        <g transform="translate(1050 30)">
+          <rect class="node t" x="0" y="0" width="62" height="40"/><rect class="node d" x="72" y="0" width="62" height="40"/><rect class="node" x="144" y="0" width="62" height="40"/><rect class="node t" x="216" y="0" width="62" height="40"/>
+          <rect class="node" x="0" y="50" width="62" height="40"/><rect class="node t" x="72" y="50" width="62" height="40"/><rect class="node d" x="144" y="50" width="62" height="40"/><rect class="node" x="216" y="50" width="62" height="40"/>
+          <rect class="node d" x="0" y="100" width="62" height="40"/><rect class="node" x="72" y="100" width="62" height="40"/><rect class="node t" x="144" y="100" width="62" height="40"/><rect class="node d" x="216" y="100" width="62" height="40"/>
+          <rect class="node" x="0" y="150" width="62" height="40"/><rect class="node d" x="72" y="150" width="62" height="40"/><rect class="node" x="144" y="150" width="62" height="40"/><rect class="node t" x="216" y="150" width="62" height="40"/>
+        </g>
+        <text class="lbl" x="232" y="262" text-anchor="middle" style="font-size:40px">A capable GPU</text>
+        <text class="lbl" x="705" y="262" text-anchor="middle" style="font-size:40px">A working environment</text>
+        <text class="lbl" x="1189" y="262" text-anchor="middle" style="font-size:40px">Many jobs in parallel</text>
+        <!-- NVIDIA: three tools -->
+        <text class="axis" x="0" y="350">NVIDIA'S ANSWER · THREE SEPARATE TOOLS</text>
+        <rect class="node d" x="0" y="370" width="1408" height="110"/>
+        <text class="lbl w" x="235" y="438" text-anchor="middle" style="font-size:44px">Omniverse Cloud</text>
+        <text class="lbl w" x="705" y="438" text-anchor="middle" style="font-size:44px">Brev</text>
+        <text class="lbl w" x="1175" y="438" text-anchor="middle" style="font-size:44px">OSMO</text>
+        <rect x="0" y="370" width="1408" height="8" fill="var(--nv)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============ P1 · OMNIVERSE CLOUD ============ -->
+<section class="slide" data-scene="omni" data-sec="NVIDIA cloud infrastructure" data-tint="nv">
+  <div class="wash full" style="background:rgba(230,233,236,.6)"></div>
+  <div class="col" style="width:600px">
+    <h2 class="rv" style="--d:1;font-size:96px">Omniverse Cloud</h2>
+    <p class="lede rv" style="--d:2">Renders in the cloud. <strong>Only pixels</strong> reach you.</p>
+    <p class="src rv" style="--d:3;margin-top:8px">Now: Omniverse on DGX Cloud</p>
+    <div class="rv" style="--d:4;margin-top:60px;display:flex;gap:12px;align-items:center">
+      <span class="chip" style="--c:var(--nv);font-size:18px;padding:6px 12px">LATENCY</span>
+      <span class="small">review: easy · teleoperation: demanding</span>
+    </div>
+  </div>
+  <div class="dg rv" style="--d:3;left:800px;top:60px">
+    <svg width="700" height="720" viewBox="0 0 700 720">
+      <text class="axis" x="0" y="14">CLOUD GPU</text>
+      <rect class="node" x="0" y="40" width="330" height="56"/><text class="lbl" x="165" y="76" text-anchor="middle">Layer · robot</text>
+      <rect class="node" x="40" y="108" width="330" height="56"/><text class="lbl" x="205" y="144" text-anchor="middle">Layer · environment</text>
+      <rect class="node" x="80" y="176" width="330" height="56"/><text class="lbl" x="245" y="212" text-anchor="middle">Layer · sensors</text>
+      <text class="sub" x="440" y="110">one layer per person</text>
+      <text class="sub" x="440" y="130">nobody overwrites anyone</text>
+      <path class="wire" d="M245 232 V280"/>
+      <rect class="node t" x="0" y="280" width="660" height="70"/>
+      <text class="lbl" x="330" y="324" text-anchor="middle">OpenUSD stage</text>
+      <path class="wire" d="M330 350 V390"/>
+      <rect class="node d" x="0" y="390" width="660" height="70"/>
+      <text class="lbl w" x="330" y="434" text-anchor="middle">App renders on the GPU</text>
+      <line x1="0" y1="530" x2="700" y2="530" stroke="var(--line-2)" stroke-width="1.5" stroke-dasharray="3 5"/>
+      <text class="axis" x="0" y="552">YOUR SIDE</text>
+      <path id="pWeb" class="wire t dash" d="M165 460 V600"/>
+      <path id="pXr" class="wire t dash" d="M495 460 V600"/>
+      <text class="sub" x="178" y="500" style="fill:var(--nv-ink);font-weight:600">WebRTC</text>
+      <text class="sub" x="508" y="500" style="fill:var(--nv-ink);font-weight:600">CloudXR</text>
+      <circle class="pk" r="7"><animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#pWeb"/></animateMotion></circle>
+      <circle class="pk" r="7"><animateMotion dur="1.4s" begin=".7s" repeatCount="indefinite"><mpath href="#pXr"/></animateMotion></circle>
+      <circle r="6" fill="var(--ink)"><animateMotion dur="1.8s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#pWeb"/></animateMotion></circle>
+      <text class="sub" x="178" y="580">input back</text>
+      <!-- browser -->
+      <rect class="node" x="40" y="600" width="250" height="100"/><rect class="node d" x="40" y="600" width="250" height="20"/>
+      <circle cx="54" cy="610" r="4" fill="var(--nv)"/><circle cx="68" cy="610" r="4" fill="#8A96A3"/>
+      <text class="lbl" x="165" y="668" text-anchor="middle">Browser</text>
+      <!-- headset -->
+      <rect class="node" x="370" y="600" width="250" height="100"/>
+      <rect x="420" y="628" width="150" height="46" rx="20" fill="var(--ink)"/>
+      <circle cx="465" cy="651" r="12" fill="var(--nv)"/><circle cx="525" cy="651" r="12" fill="var(--nv)"/>
+      <text class="sub" x="495" y="692" text-anchor="middle">XR headset</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ============ P1 · BREV ============ -->
+<section class="slide" data-scene="brev" data-sec="NVIDIA cloud infrastructure" data-tint="nv">
+  <div class="wash full" style="background:rgba(230,233,236,.72)"></div>
+  <div class="col wide" style="width:1408px;top:72px">
+    <h2 class="rv" style="--d:1">Brev solves <span class="t">day one</span></h2>
+    <div class="rv" style="--d:2">
+      <svg width="1408" height="560" viewBox="0 0 1408 560" aria-label="Pick a GPU, get a ready machine, share it as a Launchable">
+        <text class="axis" x="0" y="14">1 · PICK A GPU</text>
+        <text class="axis" x="400" y="14">2 · GET A READY MACHINE</text>
+        <text class="axis" x="880" y="14">3 · SHARE ONE LINK</text>
+        <!-- provider menu -->
+        <rect class="node d" x="0" y="40" width="300" height="50"/><text class="lbl w" x="150" y="74" text-anchor="middle">One GPU menu</text>
+        <rect class="node" x="0" y="90" width="300" height="56"/><text class="lbl" x="24" y="127" style="font-size:22px">AWS</text>
+        <rect class="node t" x="0" y="146" width="300" height="56"/><text class="lbl" x="24" y="183" style="font-size:22px">Google Cloud</text>
+        <rect class="node" x="0" y="202" width="300" height="56"/><text class="lbl" x="24" y="239" style="font-size:22px">Crusoe</text>
+        <rect class="node" x="0" y="258" width="300" height="56"/><text class="lbl" x="24" y="295" style="font-size:22px">Lambda</text>
+        <rect class="node" x="0" y="314" width="300" height="56"/><text class="lbl" x="24" y="351" style="font-size:22px">Nebius · …</text>
+        <path id="pPick" class="wire t" d="M300 174 H400"/>
+        <circle class="pk" r="7"><animateMotion dur="1.2s" repeatCount="indefinite"><mpath href="#pPick"/></animateMotion></circle>
+        <!-- machine -->
+        <rect class="node" x="400" y="40" width="380" height="390"/>
+        <rect class="node" x="425" y="64" width="330" height="54"/><text class="lbl" x="590" y="99" text-anchor="middle" style="font-size:22px">NVIDIA drivers</text>
+        <rect class="node" x="425" y="128" width="330" height="54"/><text class="lbl" x="590" y="163" text-anchor="middle" style="font-size:22px">CUDA</text>
+        <rect class="node" x="425" y="192" width="330" height="54"/><text class="lbl" x="590" y="227" text-anchor="middle" style="font-size:22px">Python</text>
+        <rect class="node" x="425" y="256" width="330" height="54"/><text class="lbl" x="590" y="291" text-anchor="middle" style="font-size:22px">Docker</text>
+        <rect class="node d" x="425" y="336" width="330" height="70"/><text class="lbl w" x="590" y="380" text-anchor="middle">GPU</text>
+        <g fill="var(--self)"><circle cx="740" cy="91" r="7"/><circle cx="740" cy="155" r="7"/><circle cx="740" cy="219" r="7"/><circle cx="740" cy="283" r="7"/></g>
+        <path class="wire t" d="M780 235 H880"/>
+        <!-- launchable -->
+        <rect class="node t" x="880" y="150" width="230" height="170"/>
+        <g transform="translate(965 186)" fill="none" stroke="var(--ink)" stroke-width="5"><rect x="0" y="0" width="40" height="22" rx="11"/><rect x="22" y="12" width="40" height="22" rx="11"/></g>
+        <text class="lbl" x="995" y="262" text-anchor="middle">Launchable</text>
+        <text class="sub" x="995" y="290" text-anchor="middle" style="fill:var(--ink)">hw · sw · code · ports</text>
+        <!-- copies -->
+        <path id="pS1" class="wire dash" d="M1110 235 C1160 235 1160 110 1208 110"/>
+        <path id="pS2" class="wire dash" d="M1110 235 H1208"/>
+        <path id="pS3" class="wire dash" d="M1110 235 C1160 235 1160 360 1208 360"/>
+        <g>
+          <rect class="node" x="1208" y="74" width="190" height="72"/><rect x="1228" y="146" width="150" height="8" fill="var(--ink)"/>
+          <rect class="node" x="1208" y="199" width="190" height="72"/><rect x="1228" y="271" width="150" height="8" fill="var(--ink)"/>
+          <rect class="node" x="1208" y="324" width="190" height="72"/><rect x="1228" y="396" width="150" height="8" fill="var(--ink)"/>
+          <text class="sub" x="1303" y="116" text-anchor="middle">same environment</text>
+          <text class="sub" x="1303" y="241" text-anchor="middle">same environment</text>
+          <text class="sub" x="1303" y="366" text-anchor="middle">same environment</text>
+        </g>
+        <text class="lbl" x="1303" y="450" text-anchor="middle" style="font-size:22px">new students</text>
+        <!-- caution -->
+        <rect x="0" y="490" width="16" height="16" fill="var(--nv)"/>
+        <text class="sub" x="28" y="504" style="fill:var(--ink);font-size:17px">Isaac Sim needs RT cores: compute-only GPUs will not work.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============ P1 · OSMO ============ -->
+<section class="slide" data-scene="osmo" data-sec="NVIDIA cloud infrastructure" data-tint="nv">
+  <div class="wash full" style="background:rgba(230,233,236,.8)"></div>
+  <div class="col wide" style="width:1408px;top:72px">
+    <h2 class="rv" style="--d:1;font-size:84px;margin-bottom:28px">OSMO: the pipeline <span class="t">as one YAML file</span></h2>
+    <div class="rv" style="--d:2">
+      <svg width="1408" height="580" viewBox="0 0 1408 580" aria-label="Illustrative OSMO pipeline scheduled on Kubernetes">
+        <text class="axis" x="0" y="14">ONE WORKFLOW · ILLUSTRATIVE</text>
+        <path id="pOsmo" class="wire" d="M115 80 H1275"/>
+        <path class="wire t dash" d="M1275 120 V168 H115 V120"/>
+        <circle class="pk" r="7"><animateMotion dur="3.2s" repeatCount="indefinite"><mpath href="#pOsmo"/></animateMotion></circle>
+        <circle class="pk" r="7"><animateMotion dur="3.2s" begin="1.6s" repeatCount="indefinite"><mpath href="#pOsmo"/></animateMotion></circle>
+        <rect class="node" x="0" y="40" width="230" height="80"/><text class="lbl" x="115" y="76" text-anchor="middle">Simulation</text><text class="sub" x="115" y="102" text-anchor="middle">Isaac Sim</text>
+        <rect class="node" x="290" y="40" width="230" height="80"/><text class="lbl" x="405" y="76" text-anchor="middle">Synthetic data</text>
+        <rect class="node t" x="580" y="40" width="230" height="80"/><text class="lbl" x="695" y="76" text-anchor="middle">Augmentation</text><text class="sub" x="695" y="102" text-anchor="middle" style="fill:var(--ink)">Cosmos · more in Part 2</text>
+        <rect class="node" x="870" y="40" width="230" height="80"/><text class="lbl" x="985" y="76" text-anchor="middle">Training</text>
+        <rect class="node d" x="1160" y="40" width="230" height="80"/><text class="lbl w" x="1275" y="76" text-anchor="middle">Evaluation</text><text class="sub w" x="1275" y="102" text-anchor="middle">back in sim</text>
+        <text class="axis" x="0" y="232">SCHEDULED ACROSS MIXED HARDWARE</text>
+        <!-- cloud GPUs -->
+        <rect class="node" x="0" y="250" width="420" height="170"/>
+        <path d="M150 360 H290 a34 34 0 0 0 0 -68 a46 46 0 0 0 -86 -16 a38 38 0 0 0 -58 30 a28 28 0 0 0 4 54 z" fill="none" stroke="var(--ink)" stroke-width="3"/>
+        <text class="lbl" x="210" y="404" text-anchor="middle">Cloud GPUs</text>
+        <!-- sim cluster -->
+        <rect class="node" x="494" y="250" width="420" height="170"/>
+        <g transform="translate(639 272)">
+          <rect class="node d" x="0" y="0" width="130" height="22"/><rect class="node d" x="0" y="28" width="130" height="22"/><rect class="node d" x="0" y="56" width="130" height="22"/><rect class="node d" x="0" y="84" width="130" height="22"/>
+          <g fill="var(--nv)"><circle cx="114" cy="11" r="4"/><circle cx="114" cy="39" r="4"/><circle cx="114" cy="67" r="4"/><circle cx="114" cy="95" r="4"/></g>
+        </g>
+        <text class="lbl" x="704" y="404" text-anchor="middle">Simulation cluster</text>
+        <!-- edge -->
+        <rect class="node" x="988" y="250" width="420" height="170"/>
+        <g transform="translate(1158 280)" stroke="var(--ink)" stroke-width="3">
+          <path d="M10 -6 V0 M30 -6 V0 M50 -6 V0 M70 -6 V0 M10 80 V86 M30 80 V86 M50 80 V86 M70 80 V86 M-6 20 H0 M-6 40 H0 M-6 60 H0 M80 20 H86 M80 40 H86 M80 60 H86"/>
+          <rect x="0" y="0" width="80" height="80" fill="var(--floor)"/><rect x="22" y="22" width="36" height="36" fill="var(--nv)" stroke="none"/>
+        </g>
+        <text class="lbl" x="1198" y="404" text-anchor="middle">Edge devices</text>
+        <path class="wire" d="M210 420 V470 M704 420 V470 M1198 420 V470"/>
+        <rect class="node d" x="0" y="470" width="1408" height="76"/>
+        <text class="lbl w" x="704" y="517" text-anchor="middle">Kubernetes · EKS · AKS · GKE · on-prem</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============ P1 · CLOSE ============ -->
+<section class="slide" data-scene="infra2" data-sec="NVIDIA cloud infrastructure" data-tint="nv">
+  <div class="wash top"></div>
+  <div class="col wide" style="width:1408px">
+    <h2 class="rv">A toolbox, <span class="t">not one platform</span></h2>
+    <div class="pair rv" style="--d:2;grid-template-columns:repeat(3,1fr);gap:40px">
+      <div><div class="rule" style="background:var(--nv);width:100%"></div>
+        <svg width="220" height="130" viewBox="0 0 220 130" style="margin:14px 0 6px"><rect x="0" y="10" width="10" height="110" fill="var(--ink)"/><rect class="node" x="10" y="14" width="200" height="100"/><circle cx="70" cy="64" r="32" fill="none" stroke="var(--ink)" stroke-width="2"/><circle cx="150" cy="64" r="32" fill="none" stroke="var(--ink)" stroke-width="2"/><circle cx="70" cy="64" r="7" fill="var(--ink)"/><circle cx="150" cy="64" r="7" fill="var(--ink)"/><rect x="50" y="114" width="120" height="12" fill="var(--nv)"/></svg>
+        <h3>Brev</h3><p class="lede" style="font-size:30px">the machine</p></div>
+      <div><div class="rule" style="background:var(--nv);width:100%"></div>
+        <svg width="300" height="130" viewBox="0 0 300 130" style="margin:14px 0 6px"><path class="wire" d="M30 64 H270"/><rect class="node" x="0" y="44" width="60" height="40"/><rect class="node" x="80" y="44" width="60" height="40"/><rect class="node t" x="160" y="44" width="60" height="40"/><rect class="node d" x="240" y="44" width="60" height="40"/><path class="wire t dash" d="M270 84 V112 H30 V84"/></svg>
+        <h3>OSMO</h3><p class="lede" style="font-size:30px">the pipeline</p></div>
+      <div><div class="rule" style="background:var(--nv);width:100%"></div>
+        <svg width="220" height="130" viewBox="0 0 220 130" style="margin:14px 0 6px"><rect class="node" x="0" y="10" width="220" height="110"/><rect class="node d" x="0" y="10" width="220" height="22"/><circle cx="14" cy="21" r="4" fill="var(--nv)"/><path d="M40 98 L90 54 L130 84 L160 62 L190 98 Z" fill="var(--nv)"/><circle cx="168" cy="52" r="9" fill="var(--ink)"/></svg>
+        <h3>Omniverse Cloud</h3><p class="lede" style="font-size:30px">the view</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 PROBLEM ============ -->
+<section class="slide" data-scene="fall" data-sec="Isaac in the cloud" data-tint="nv">
+  <div class="wash"></div>
+  <div class="col">
+    <h2 class="rv" style="--d:1">A robot that falls <span class="t">10,000</span> times breaks</h2>
+    <div class="tags rv" style="--d:2"><span class="tag">trial and error · RL</span><span class="tag">copying examples · IL</span></div>
+    <div class="flow rv" style="--d:3;margin-top:48px"><span class="n">Virtual world</span><span class="a"></span><span class="n hot" style="background:var(--nv);border-color:var(--nv)">Training</span><span class="a"></span><span class="n">Real robot</span></div>
+    <p class="big-cap rv" style="--d:4;margin-top:36px;font-size:52px">sim-to-real</p>
+  </div>
+  <div class="dg" style="right:120px;top:120px;text-align:right">
+    <div class="term-h" style="justify-content:flex-end;background:var(--floor);padding:4px 8px;margin-left:auto;width:max-content">falls in this cell</div>
+    <div id="fallCount" class="flap big-cap" style="font-size:96px;font-family:var(--mono);font-weight:600"></div>
+  </div>
+</section>
+
+<!-- ============ 03 ISAAC SIM ============ -->
+<section class="slide" data-scene="sim" data-sec="Isaac in the cloud" data-tint="nv">
+  <div class="wash" style="--w:50%"></div>
+  <div class="col" style="width:780px">
+    <h2 class="rv" style="--d:1">Isaac Sim is <span class="t">the world</span></h2>
+    <p class="src rv" style="--d:2">NVIDIA · built on Omniverse + OpenUSD · open source, Apache 2.0</p>
+    <div class="pillars rv" style="--d:3;margin-top:30px;max-width:720px">
+      <div><div class="rule t"></div><h3>Physics</h3><p>PhysX · Newton</p></div>
+      <div><div class="rule t"></div><h3>RTX sensors</h3><p>Camera · depth · LiDAR · IMU</p></div>
+    </div>
+    <div class="flow sm rv" style="--d:4;margin-top:44px"><span class="n">Import<small>URDF · CAD · USD</small></span><span class="a"></span><span class="n">Configure<small>sensors · physics</small></span><span class="a"></span><span class="n hot" style="background:var(--nv);border-color:var(--nv)">Simulate<small>Replicator data</small></span><span class="a"></span><span class="n">Connect<small>Isaac Lab · ROS 2</small></span></div>
+  </div>
+</section>
+
+<!-- ============ 04 ISAAC LAB ============ -->
+<section class="slide" data-scene="lab" data-steps="1" data-sec="Isaac in the cloud" data-tint="nv">
+  <div class="wash"></div>
+  <div class="col">
+    <h2 class="rv" style="--d:1">Isaac Lab is <span class="t">the training</span></h2>
+    <p class="lede rv" style="--d:2">One GPU. <strong id="cloneCount" class="flap" style="font-family:var(--mono)"></strong> copies of the robot.</p>
+    <div class="tags rv" style="--d:3;margin-top:22px;max-width:600px"><span class="tag d">on top of Isaac Sim</span><span class="tag">open source</span><span class="tag">arms · ANYmal · Spot · G1</span><span class="tag">multi-GPU · multi-node</span><span class="tag">cloud + HPC docs</span></div>
+  </div>
+</section>
+
+<!-- ============ 05 TRAIN vs WATCH ============ -->
+<section class="slide" data-scene="lab2" data-sec="Isaac in the cloud" data-tint="nv">
+  <div class="wash full"></div>
+  <div class="col wide" style="width:1408px">
+    <h2 class="rv" style="--d:1">Train headless. <span class="t">Watch over a stream.</span></h2>
+    <div class="pair rv" style="--d:2;margin-top:8px">
+      <div>
+        <div class="term-h"><span>1 · train</span><span>no rendering → much faster</span></div>
+        <div class="term" id="trainTerm">
+          <div class="ln"><span class="pr">$</span> ./isaaclab.sh train --rl_library skrl \</div>
+          <div class="ln">    --task Isaac-Ant-v0 <span class="hl">--headless</span></div>
+          <div id="trainLog"></div>
+        </div>
+        <p style="margin-top:20px"><strong>Batch job</strong> → ideal for the cloud</p>
+      </div>
+      <div>
+        <div class="term-h"><span>2 · play</span><span>window streamed to the browser</span></div>
+        <div class="term">
+          <div class="ln"><span class="pr">$</span> ./isaaclab.sh play --rl_library skrl \</div>
+          <div class="ln">    --task Isaac-Ant-v0 <span class="hl">--livestream 2</span></div>
+          <div class="ln ok">  streaming viewport…</div>
+        </div>
+        <p style="margin-top:20px"><strong>Graphics GPU</strong> + a stream to your screen</p>
+      </div>
+    </div>
+    <p class="src rv" style="--d:3;margin-top:34px">Reward log is illustrative, not a recorded run.</p>
+  </div>
+</section>
+
+<!-- ============ 06 WHY THE CLOUD ============ -->
+<section class="slide" data-scene="gpu" data-sec="Isaac in the cloud" data-tint="nv">
+  <div class="wash"></div>
+  <div class="col" style="width:760px">
+    <h2 class="rv" style="--d:1">What Isaac <span class="t">needs</span></h2>
+    <table class="rv" style="--d:2">
+      <tr><th></th><th>Minimum</th><th>Good</th><th>Ideal</th></tr>
+      <tr><td>GPU</td><td>RTX 4080</td><td>RTX 5080</td><td>RTX PRO 6000 Blackwell</td></tr>
+      <tr><td>VRAM</td><td class="num">16 GB</td><td class="num">16 GB</td><td class="num">48 GB</td></tr>
+      <tr><td>RAM</td><td class="num">32 GB</td><td class="num">64 GB</td><td class="num">64 GB</td></tr>
+      <tr><td>Storage</td><td class="num">50 GB SSD</td><td class="num">500 GB SSD</td><td class="num">1 TB NVMe</td></tr>
+    </table>
+    <p class="src rv" style="--d:3;margin-top:12px">Isaac Sim official requirements · Ubuntu 22.04/24.04 or Windows 11 · Isaac Lab needs more</p>
+  </div>
+  <div class="dg rv" style="--d:4;right:72px;top:126px;width:600px;padding:24px;background:rgba(230,233,236,.95)">
+    <div class="big-cap" style="font-size:64px">No RT cores,<br><span style="color:var(--nv-d)">not supported</span></div>
+    <div class="tags" style="margin-top:26px"><span class="tag x">A100</span><span class="tag x">H100</span></div>
+    <div class="tags" style="margin-top:12px"><span class="tag d">L4</span><span class="tag d">L40S</span><span class="tag d">A10</span><span class="tag d">RTX PRO 6000</span></div>
+    <p style="margin-top:26px;max-width:none">Rent it per hour. <strong>Switch it off.</strong></p>
+  </div>
+</section>
+
+<!-- ============ 07 LAUNCHABLE ARCH ============ -->
+<section class="slide" data-scene="stack" data-sec="Isaac in the cloud" data-tint="nv">
+  <div class="wash full" style="background:rgba(230,233,236,.55)"></div>
+  <div class="col" style="width:520px">
+    <h2 class="rv" style="--d:1;font-size:84px">Only <span class="t">pixels</span> come to you</h2>
+    <p class="lede rv" style="--d:2"><strong>Brev Launchable</strong> (from Part 1): GPU VM + Docker containers.</p>
+    <p class="big-cap rv" style="--d:3;font-size:44px">Your laptop is<br>just a browser</p>
+  </div>
+  <div class="dg rv" style="--d:3;left:690px;top:58px">
+    <svg width="840" height="740" viewBox="0 0 840 740">
+      <text class="axis" x="0" y="14">YOUR SIDE</text>
+      <text class="axis" x="0" y="250">CLOUD GPU VM · BREV</text>
+      <line x1="0" y1="232" x2="840" y2="232" stroke="var(--line-2)" stroke-width="1.5" stroke-dasharray="3 5"/>
+      <!-- laptop -->
+      <rect class="node d" x="240" y="34" width="360" height="86"/>
+      <text class="lbl w" x="420" y="74" text-anchor="middle">Your laptop</text>
+      <text class="sub w" x="420" y="100" text-anchor="middle">just a browser · two tabs</text>
+      <!-- https wire -->
+      <path id="pHttps" class="wire dash" d="M330 120 V300"/>
+      <text class="sub" x="342" y="190">HTTPS · secure link · :80</text>
+      <!-- nginx -->
+      <rect class="node" x="250" y="300" width="160" height="62"/><text class="lbl" x="330" y="340" text-anchor="middle">nginx</text>
+      <path class="wire" d="M300 362 V412 H150 V440"/>
+      <path class="wire" d="M360 362 V440"/>
+      <rect class="node" x="40" y="440" width="230" height="78"/><text class="lbl" x="155" y="474" text-anchor="middle">VS Code</text><text class="sub" x="155" y="500" text-anchor="middle">terminal + files</text>
+      <rect class="node" x="290" y="440" width="190" height="78"/><text class="lbl" x="385" y="474" text-anchor="middle">Web viewer</text><text class="sub" x="385" y="500" text-anchor="middle">/viewer</text>
+      <!-- isaac -->
+      <path class="wire" d="M155 518 V566 H330 V590"/>
+      <text class="sub" x="170" y="556">start commands</text>
+      <rect class="node t" x="120" y="590" width="600" height="96"/>
+      <text class="lbl" x="420" y="630" text-anchor="middle">Isaac Sim 6.0.1 · Isaac Lab 3.0 beta</text>
+      <text class="sub" x="420" y="658" text-anchor="middle" style="fill:var(--ink)">containers · headless on the GPU</text>
+      <!-- webrtc back -->
+      <path id="pRtc" class="wire t dash" d="M640 590 V250 Q640 170 600 120" />
+      <text class="sub" x="626" y="380" text-anchor="end" style="fill:var(--nv-ink);font-weight:600">WebRTC stream</text>
+      <text class="sub" x="626" y="400" text-anchor="end">UDP/TCP 1024</text>
+      <text class="sub" x="626" y="418" text-anchor="end">47998 · 49100</text>
+      <circle class="pk" r="7"><animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#pRtc"/></animateMotion></circle>
+      <circle class="pk" r="7"><animateMotion dur="1.4s" begin=".7s" repeatCount="indefinite"><mpath href="#pRtc"/></animateMotion></circle>
+      <circle r="6" fill="var(--ink)"><animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#pHttps"/></animateMotion></circle>
+    </svg>
+  </div>
+</section>
+
+<!-- ============ 08 LAUNCHABLE STEPS ============ -->
+<section class="slide" data-scene="steps" data-sec="Isaac in the cloud" data-tint="nv">
+  <div class="wash"></div>
+  <div class="col" style="width:720px">
+    <h2 class="rv" style="--d:1;font-size:84px">From click to <span class="t">viewport</span></h2>
+    <ol class="steps rv" style="--d:2;gap:16px">
+      <li><span><b>Deploy</b> the Launchable · first boot is slow</span></li>
+      <li><span><b>Secure link</b> → log in with NVIDIA</span></li>
+      <li><span>Tab 1 · <b>VS Code</b> in the browser</span></li>
+      <li><span><code>runheadless.sh</code> → <code>app ready</code></span></li>
+      <li><span>Tab 2 · <code>/viewer</code> → <b>Isaac Sim GUI</b></span></li>
+      <li><span><b>Upload</b> your own robot</span></li>
+      <li><span><b>Stop</b> it · then you only pay storage</span></li>
+    </ol>
+    <p class="src rv" style="--d:3;margin-top:22px">Custom Launchable: VM mode · git clone + docker compose up · port 80 · RT-core GPU</p>
+  </div>
+</section>
+
+<!-- ============ 09 COSMOS ============ -->
+<section class="slide" data-scene="cosmos" data-sec="Isaac in the cloud" data-tint="nv">
+  <div class="wash"></div>
+  <div class="col">
+    <h2 class="rv" style="--d:1">Cosmos: <span class="t">more data,</span> better data</h2>
+    <p class="src rv" style="--d:2">NVIDIA's open world foundation models for physical AI</p>
+    <div class="flow sm rv" style="--d:3;margin-top:40px"><span class="n">1 demo</span><span class="a"></span><span class="n hot" style="background:var(--nv);border-color:var(--nv)">Cosmos</span><span class="a"></span><span class="n">many new looks</span></div>
+    <p class="rv" style="--d:4;margin-top:22px">Augmented imitation learning in <strong>Isaac Lab</strong>.</p>
+    <p class="src rv" style="--d:5;margin-top:26px">The variations in this cell are an illustration, not Cosmos output.</p>
+  </div>
+</section>
+
+<!-- ============ 10 SORTING FRAME ============ -->
+<section class="slide" data-scene="sort" data-sec="Alternatives" data-tint="on">
+  <div class="wash top"></div>
+  <div class="col wide" style="width:1408px">
+    <h2 class="rv">“In a browser” is not “AI training”</h2>
+    <div class="pair rv" style="--d:2;grid-template-columns:repeat(3,1fr);gap:40px">
+      <div><div class="rule" style="background:var(--nv);width:100%"></div><h3>NVIDIA stack on rented GPUs</h3><p class="small">Isaac on a GPU VM. You train.</p></div>
+      <div><div class="rule" style="background:var(--on);width:100%"></div><h3>Online workspace</h3><p class="small">A simulator in a tab. Not a trainer.</p></div>
+      <div><div class="rule" style="background:var(--self);width:100%"></div><h3>Open stack you deploy</h3><p class="small">Install it anywhere. All the engineering.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11 ONLINE WORKSPACES ============ -->
+<section class="slide" data-scene="online" data-sec="Alternatives" data-tint="on">
+  <div class="wash" style="--w:55%"></div>
+  <div class="col" style="width:780px">
+    <h2 class="rv" style="--d:1;font-size:84px">Open a tab, get <span class="t">a robot lab</span></h2>
+    <div class="plats rv" style="--d:2">
+      <div class="plat"><div><h3>The Construct</h3><div class="k">ROS · ROS 2 · Gazebo · Isaac Lab</div></div>
+        <div><p>Ready ROS workspaces in the browser.</p><p class="no" style="margin-top:8px">Not a high-throughput RL trainer.</p></div></div>
+      <div class="plat"><div><h3>Webots.cloud</h3><div class="k">Cyberbotics · open source</div></div>
+        <div><p>GitHub repo + <code>Dockerfile</code> → an interactive sim on their GPU.</p><p class="no" style="margin-top:8px">Interactive simulator, not a trainer.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12 SELF-DEPLOYED ============ -->
+<section class="slide" data-scene="selfdep" data-sec="Alternatives" data-tint="self">
+  <div class="wash" style="--w:59%"></div>
+  <div class="col" style="width:840px;top:72px">
+    <h2 class="rv" style="--d:1;font-size:80px;margin-bottom:24px">Same pipeline, <span class="t">no Isaac</span></h2>
+    <div class="plats rv" style="--d:2;gap:16px">
+      <div class="plat"><div><h3>Unity Sim Pro + ML-Agents</h3><div class="k">early access · 22 Sep 2026</div></div>
+        <div><p>URDF, sensors, ROS 2 · PPO, SAC, imitation.</p><p class="no" style="margin-top:6px">Two parts to integrate · Unity Industry licence.</p></div></div>
+      <div class="plat"><div><h3>MuJoCo Playground</h3><div class="k">Google DeepMind · open source</div></div>
+        <div><p>GPU-batched · MJX on NVIDIA, AMD or TPU.</p><p class="no" style="margin-top:6px">You run the whole lifecycle.</p></div></div>
+      <div class="plat"><div><h3>Genesis World</h3><div class="k">CUDA · ROCm · Metal · Vulkan · CPU</div></div>
+        <div><p>Batched multiphysics, laptop to datacenter.</p><p class="no" style="margin-top:6px">Bring your own RL loop.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 13 COMPARE ============ -->
+<section class="slide" data-scene="compare" data-sec="Alternatives" data-tint="on">
+  <div class="wash full"></div>
+  <div class="col wide" style="width:1408px;top:72px">
+    <h2 class="rv" style="font-size:84px;margin-bottom:24px">Who does the work?</h2>
+    <table class="rv" style="--d:2;font-size:23px">
+      <tr><th style="width:290px">Platform</th><th>Kind</th><th>Needs NVIDIA?</th><th>RL at scale</th><th>You pay for</th></tr>
+      <tr><td><span class="chip" style="--c:var(--nv)">&nbsp;</span> Isaac Sim + Lab</td><td>Template on a GPU VM</td><td>Yes, RT cores</td><td>Thousands of envs</td><td>GPU per hour</td></tr>
+      <tr><td><span class="chip" style="--c:var(--on)">&nbsp;</span> The Construct</td><td>Online workspace</td><td>Gazebo no · Isaac Lab yes</td><td>With extra work</td><td>Free or paid plan</td></tr>
+      <tr><td><span class="chip" style="--c:var(--on)">&nbsp;</span> Webots.cloud</td><td>Hosted simulator</td><td>Not stated</td><td>Not a trainer</td><td>Platform policies</td></tr>
+      <tr><td><span class="chip" style="--c:var(--self)">&nbsp;</span> Unity + ML-Agents</td><td>You deploy</td><td>No Isaac dependency</td><td>Yes, once integrated</td><td>Licence + compute</td></tr>
+      <tr><td><span class="chip" style="--c:var(--self)">&nbsp;</span> MuJoCo Playground</td><td>You deploy</td><td>MJX no · Warp yes</td><td>Yes, GPU-batched</td><td>Compute + time</td></tr>
+      <tr><td><span class="chip" style="--c:var(--self)">&nbsp;</span> Genesis World</td><td>You deploy</td><td>No · many backends</td><td>Your RL loop</td><td>Compute + time</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ LIVE DEMO (Guillem) ============ -->
+<section class="slide" data-scene="demo" data-sec="Live demo" data-tint="self">
+  <div class="wash" style="--w:50%"></div>
+  <div class="col" style="top:auto;bottom:110px;width:900px">
+    <h2 class="rv" style="--d:1;font-size:150px">And now, <span class="t">the demo</span></h2>
+    <p class="lede rv" style="--d:2">Live, with Guillem and Jorge.</p>
+  </div>
+</section>
+
+<!-- ============ 19 WHEN TO USE WHAT ============ -->
+<section class="slide" data-scene="close" data-sec="Takeaways" data-tint="ink">
+  <div class="wash top"></div>
+  <div class="col wide" style="width:1408px">
+    <h2 class="rv">Pick the cloud by the job</h2>
+    <div class="pair rv" style="--d:2;grid-template-columns:repeat(4,1fr);gap:34px">
+      <div><div class="rule" style="background:var(--nv);width:100%"></div><p class="small">Thousands of parallel envs and photoreal sensors?</p><h3 style="margin-top:10px">Isaac on a rented RT-core GPU</h3></div>
+      <div><div class="rule" style="background:var(--on);width:100%"></div><p class="small">A ROS classroom or a shareable demo in a browser?</p><h3 style="margin-top:10px">Online workspace</h3></div>
+      <div><div class="rule" style="background:var(--self);width:100%"></div><p class="small">Vendor freedom, or no NVIDIA at all?</p><h3 style="margin-top:10px">Open stack you deploy</h3></div>
+      <div><div class="rule" style="background:var(--ink);width:100%"></div><p class="small">A spare GPU and a shared network?</p><h3 style="margin-top:10px">Share it yourself</h3></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 20 THANKS ============ -->
+<section class="slide" data-scene="end" data-sec="Questions" data-tint="ink">
+  <div class="col" style="top:auto;bottom:110px;width:1408px">
+    <h1 class="rv" style="font-size:200px">Questions?</h1>
+    <p class="src rv" style="--d:2;margin-top:26px;columns:2;column-gap:48px">
+      nvidia.com/en-eu/data-center/omniverse-dgx-cloud · docs.nvidia.com/brev<br>
+      nvidia.github.io/OSMO · openusd.org<br>
+      docs.isaacsim.omniverse.nvidia.com · isaac-sim.github.io/IsaacLab<br>
+      github.com/isaac-sim/isaac-launchable · nvidia.com/en-us/ai/cosmos<br>
+      theconstruct.ai · cyberbotics.com/doc/guide/webots-cloud<br>
+      unity.com/blog/unity-simulation-pro-early-access · github.com/google-deepmind/mujoco_playground<br>
+      github.com/Genesis-Embodied-AI/genesis-world · github.com/unitreerobotics/unitree_ros
+    </p>
+  </div>
+</section>
+
+</main>
+
+<div id="rail">
+  <div class="sec"><i></i><span id="railSec"></span></div>
+  <div class="kv"><span>ENV</span><span class="flap" id="railEnv"></span></div>
+  <div class="kv"><span>ROBOTS</span><span class="flap" id="railBots"></span></div>
+  <div class="kv"><span>EPISODE</span><span class="flap" id="railEp"></span></div>
+  <div class="kv"><span>REWARD</span><canvas id="reward" width="280" height="44" style="width:140px;height:22px"></canvas><span style="color:#7E8995;font-size:11px;margin-left:10px">illustrative</span></div>
+  <div class="sp"></div>
+  <div class="kv"><span>SLIDE</span><span class="flap" id="railSlide"></span></div>
+</div>
+
+<script>/*@@THREE@@*/</script>
+<script type="application/json" id="robots">/*@@ROBOTS@@*/</script>
+<script>
+(() => {
+'use strict';
+const T3 = THREE;
+T3.ColorManagement.legacyMode = false;
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const V = (x=0,y=0,z=0) => new T3.Vector3(x,y,z);
+const clamp = (x,a,b) => Math.min(b, Math.max(a, x));
+const lerp = (a,b,t) => a + (b-a)*t;
+const easeIO = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
+const easeOut = t => 1 - Math.pow(2, -10*t);
+const hash = n => { const x = Math.sin(n*127.1 + 311.7)*43758.5453; return x - Math.floor(x); };
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const COL = { floor:0xE6E9EC, line:0xC9CFD5, ink:0x141A22, nv:0xFF5A1F, on:0x3557FF, self:0x1FA37A };
+const CELL = 3;
+
+/* ---------------- renderer ---------------- */
+const canvas = $('#stage');
+const renderer = new T3.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+renderer.outputEncoding = T3.sRGBEncoding;
+renderer.toneMapping = T3.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = T3.PCFSoftShadowMap;
+let QUALITY = new URLSearchParams(location.search).get('q') === '0' ? 0 : 1;
+const scene = new T3.Scene();
+scene.background = new T3.Color(COL.floor);
+scene.fog = new T3.Fog(COL.floor, 26, 74);
+const camera = new T3.PerspectiveCamera(34, 16/9, .1, 400);
+camera.up.set(0,0,1);
+scene.add(new T3.HemisphereLight(0xffffff, 0x8f99a3, 1.35));
+const sun = new T3.DirectionalLight(0xffffff, 2.6);
+sun.position.set(-8, -12, 22); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left:-12, right:12, top:12, bottom:-12, near:1, far:60 });
+sun.shadow.bias = -.0004; sun.shadow.normalBias = .02;
+scene.add(sun, sun.target);
+
+/* ---------------- floor ---------------- */
+function floorTex(){
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = '#E6E9EC'; g.fillRect(0,0,512,512);
+  g.strokeStyle = '#C3CAD1'; g.lineWidth = 4; g.strokeRect(0,0,512,512);
+  g.strokeStyle = '#D3D8DD'; g.lineWidth = 1.5;
+  for (let i = 1; i < 4; i++){ g.beginPath(); g.moveTo(i*128,0); g.lineTo(i*128,512); g.moveTo(0,i*128); g.lineTo(512,i*128); g.stroke(); }
+  g.strokeStyle = '#9AA4AE'; g.lineWidth = 3;
+  [[0,0],[512,0],[0,512],[512,512]].forEach(([x,y]) => { g.beginPath(); g.moveTo(x-22,y); g.lineTo(x+22,y); g.moveTo(x,y-22); g.lineTo(x,y+22); g.stroke(); });
+  const t = new T3.CanvasTexture(c); t.wrapS = t.wrapT = T3.RepeatWrapping; t.encoding = T3.sRGBEncoding;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t;
+}
+const FLOOR_SIZE = 420;
+const ftex = floorTex(); ftex.repeat.set(FLOOR_SIZE/CELL, FLOOR_SIZE/CELL);
+const floor = new T3.Mesh(new T3.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE), new T3.MeshStandardMaterial({ map:ftex, roughness:.95, metalness:0 }));
+// left/bottom edges sit on a cell boundary (1.5 + 3k) so cell centres fall on multiples of CELL
+floor.position.set(61.5, 31.5, 0); floor.receiveShadow = true; scene.add(floor);
+
+const stencils = [];
+function drawStencil(c, text, opts){
+  const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height);
+  g.fillStyle = opts.color || 'rgba(20,26,34,.22)';
+  g.font = `900 ${opts.px || 200}px "Big Shoulders Display"`; g.textBaseline = 'middle';
+  g.fillText(text, 8, c.height/2 + 10);
+}
+function stencil(text, x, y, opts = {}){
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 256;
+  drawStencil(c, text, opts);
+  const t = new T3.CanvasTexture(c); stencils.push(() => { drawStencil(c, text, opts); t.needsUpdate = true; }); t.encoding = T3.sRGBEncoding; t.anisotropy = 8;
+  const sz = opts.size || 2.4;
+  const m = new T3.Mesh(new T3.PlaneGeometry(sz, sz/4), new T3.MeshBasicMaterial({ map:t, transparent:true, depthWrite:false }));
+  m.position.set(x + sz/2, y, .004); m.rotation.z = opts.rot || 0; m.renderOrder = 1; scene.add(m); return m;
+}
+function tintCell(x, y, color, size = CELL, alpha = .2){
+  const g = new T3.Group();
+  const fill = new T3.Mesh(new T3.PlaneGeometry(size - .06, size - .06), new T3.MeshBasicMaterial({ color, transparent:true, opacity:alpha, depthWrite:false }));
+  fill.position.set(x, y, .006); g.add(fill);
+  const e = new T3.LineSegments(new T3.EdgesGeometry(new T3.PlaneGeometry(size - .06, size - .06)), new T3.LineBasicMaterial({ color }));
+  e.position.set(x, y, .008); g.add(e); scene.add(g); return g;
+}
+
+/* ---------------- robots ---------------- */
+const RD = JSON.parse($('#robots').textContent);
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
+const geoCache = new Map();
+function partGeo(key, link, i, p){
+  const id = `${key}/${link}/${i}`; if (geoCache.has(id)) return geoCache.get(id);
+  const q = new Uint16Array(b64(p.v)), nv = q.length/3, pos = new Float32Array(q.length);
+  for (let k = 0; k < nv; k++) for (let a = 0; a < 3; a++) pos[k*3+a] = p.mn[a] + q[k*3+a]/65535*p.sc[a];
+  const ib = b64(p.i), idx = nv < 65536 ? new Uint16Array(ib) : new Uint32Array(ib);
+  const g = new T3.BufferGeometry(); g.setAttribute('position', new T3.BufferAttribute(pos, 3)); g.setIndex(new T3.BufferAttribute(idx, 1));
+  g.computeVertexNormals(); geoCache.set(id, g); return g;
+}
+const matCache = new Map();
+function partMat(c, variant){
+  const lum = c[0]*.3 + c[1]*.5 + c[2]*.2;
+  const id = c.join() + (variant || '');
+  if (matCache.has(id)) return matCache.get(id);
+  // Unitree finish: graphite joints, brushed-steel shells; reads against the pale floor
+  let col = new T3.Color(lum < .12 ? 0x1C2026 : 0x7E8892);
+  if (variant) col = new T3.Color(variant).lerp(col, lum < .12 ? .85 : .2);
+  const m = new T3.MeshStandardMaterial({ color:col, roughness: lum < .12 ? .7 : .38, metalness: lum < .12 ? .1 : .45 });
+  matCache.set(id, m); return m;
+}
+function makeRobot(key, opt = {}){
+  const D = RD[key], links = {}, J = {};
+  const L = n => links[n] || (links[n] = new T3.Group());
+  const root = new T3.Group(), body = new T3.Group(); root.add(body); body.add(L(D.root));
+  D.joints.forEach(j => {
+    const org = new T3.Group(); org.position.set(...j.o); org.rotation.set(j.r[0], j.r[1], j.r[2], 'ZYX');
+    const mot = new T3.Group(); org.add(mot); mot.add(L(j.c)); L(j.p).add(org);
+    J[j.n] = { mot, axis:V(...j.a).normalize(), lo:j.lo, hi:j.hi };
+  });
+  const meshes = [];
+  Object.entries(D.links).forEach(([name, parts]) => parts.forEach((p, i) => {
+    const m = new T3.Mesh(partGeo(key, name, i, p), partMat(p.c, opt.tint));
+    m.position.set(...p.o); m.rotation.set(p.r[0], p.r[1], p.r[2], 'ZYX');
+    m.castShadow = opt.shadow !== false; m.receiveShadow = false;
+    L(name).add(m); meshes.push(m);
+  }));
+  const r = { root, body, links, J, meshes, key,
+    set(n, q){ const j = J[n]; if (!j) return; j.mot.quaternion.setFromAxisAngle(j.axis, clamp(q, j.lo, j.hi)); },
+    ground(){ body.position.z = 0; root.updateMatrixWorld(true); const bb = new T3.Box3();
+      const inv = new T3.Matrix4().copy(root.matrixWorld).invert(); const tmp = new T3.Box3();
+      meshes.forEach(m => { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); tmp.copy(m.geometry.boundingBox).applyMatrix4(new T3.Matrix4().multiplyMatrices(inv, m.matrixWorld)); bb.union(tmp); });
+      body.position.z = -bb.min.z; return -bb.min.z; } };
+  return r;
+}
+// poses
+function g1Pose(r, t, ph = 0, amp = 1){
+  const s = Math.sin, k = .14 + .1*(1 + s(t*1.6 + ph))*.5*amp;
+  r.set('waist_yaw_joint', .3*amp*s(t*1.1 + ph));
+  r.set('left_shoulder_pitch_joint', -.35 + .65*amp*s(t*1.7 + ph));
+  r.set('right_shoulder_pitch_joint', -.35 + .65*amp*s(t*1.7 + ph + Math.PI));
+  r.set('left_shoulder_roll_joint', .22 + .15*amp*(1 + s(t*1.3 + ph)));
+  r.set('right_shoulder_roll_joint', -.22 - .15*amp*(1 + s(t*1.3 + ph + 1)));
+  r.set('left_elbow_joint', .75 + .4*amp*s(t*2.1 + ph));
+  r.set('right_elbow_joint', .75 + .4*amp*s(t*2.1 + ph + 2));
+  ['left','right'].forEach(sd => { r.set(`${sd}_hip_pitch_joint`, -k); r.set(`${sd}_knee_joint`, 2*k); r.set(`${sd}_ankle_pitch_joint`, -k); });
+}
+function g1Rest(r){ g1Pose(r, 0, 0, 0); }
+function go2Stand(r){ ['FL','FR','RL','RR'].forEach(l => { r.set(`${l}_hip_joint`, 0); r.set(`${l}_thigh_joint`, .8); r.set(`${l}_calf_joint`, -1.5); }); }
+
+/* ---------------- clone field (instanced, LOD lo) ---------------- */
+const FIELD_N = 32, FIELD_MAX = FIELD_N*FIELD_N;
+const clone = (() => {
+  const tpl = makeRobot('g1_lo', { shadow:false });
+  const parts = tpl.meshes;
+  const K = 8, variants = [...Array(K)].map(() => parts.map(() => new T3.Matrix4()));
+  const inst = parts.map(m => { const im = new T3.InstancedMesh(m.geometry, m.material, FIELD_MAX); im.instanceMatrix.setUsage(T3.DynamicDrawUsage); im.frustumCulled = false; im.count = 0; scene.add(im); return im; });
+  // instance order: by distance from centre so the field grows outwards
+  const slots = [];
+  for (let i = 0; i < FIELD_N; i++) for (let j = 0; j < FIELD_N; j++){
+    const x = (i - FIELD_N/2)*CELL, y = (j - FIELD_N/2)*CELL;
+    slots.push({ x, y, d:Math.hypot(x, y) + hash(i*91 + j)*.4, k:(i*7 + j*3) % K, yaw:(hash(i*13 + j*7) - .5)*.5, seed:hash(i*3.1 + j*17.3) });
+  }
+  slots.sort((a, b) => a.d - b.d);
+  const st = { active:0, target:0, shown:0, born:new Float32Array(FIELD_MAX), visible:false, shadows:false };
+  const M = new T3.Matrix4(), B = new T3.Matrix4(), R = new T3.Matrix4(), S = new T3.Matrix4(), tmp = new T3.Matrix4();
+  const invRoot = new T3.Matrix4();
+  function computeVariants(t){
+    for (let k = 0; k < K; k++){
+      g1Pose(tpl, t, k*.8, 1); const z = tpl.ground();
+      tpl.root.updateMatrixWorld(true); invRoot.copy(tpl.root.matrixWorld).invert();
+      parts.forEach((m, p) => variants[k][p].multiplyMatrices(invRoot, m.matrixWorld));
+    }
+  }
+  function update(t, now){
+    if (!st.visible){ inst.forEach(im => im.visible = false); return; }
+    inst.forEach(im => { im.visible = true; im.castShadow = st.shadows; });
+    computeVariants(t);
+    const n = Math.round(st.shown);
+    for (let i = 0; i < n; i++){
+      const s = slots[i];
+      if (st.born[i] === 0) st.born[i] = now;
+      const age = (now - st.born[i]) / 1000;
+      let sc = clamp(age / .45, 0, 1); sc = 1 - Math.pow(1 - sc, 3);
+      // episodic falls: trial and error, then respawn
+      const per = 7 + s.seed*9, ph = ((t + s.seed*50) % per) / per;
+      let fall = 0;
+      if (s.seed > .35 && ph > .82){ const f = (ph - .82)/.18; fall = f < .55 ? Math.pow(f/.55, 2)*1.45 : 1.45; sc *= f > .82 ? 1 - (f - .82)/.18 : 1; }
+      if (s.seed > .35 && ph < .05) sc *= ph/.05;
+      B.makeTranslation(s.x, s.y, 0); R.makeRotationZ(s.yaw); B.multiply(R);
+      if (fall){ R.makeRotationY(fall*(s.seed > .67 ? 1 : -1)); B.multiply(R); }
+      S.makeScale(sc, sc, sc); B.multiply(S);
+      for (let p = 0; p < parts.length; p++){ M.multiplyMatrices(B, variants[s.k][p]); inst[p].setMatrixAt(i, M); }
+    }
+    inst.forEach(im => { im.count = n; im.instanceMatrix.needsUpdate = true; });
+  }
+  return { st, update, slots, set(target, instant){
+    target = Math.min(target, QUALITY ? FIELD_MAX : 256);
+    st.target = target;
+    if (instant || target < st.shown){ st.shown = target; for (let i = target; i < FIELD_MAX; i++) st.born[i] = 0; }
+  } };
+})();
+
+/* ---------------- hero actors ---------------- */
+const actors = {};
+function place(r, x, y, yaw = 0){ r.root.position.set(x, y, 0); r.root.rotation.z = yaw; scene.add(r.root); return r; }
+
+// cells for each scene, laid out along the floor
+const P = {
+  field:[0,0], fall:[48,0], sim:[60,0], gpu:[72,0], stack:[84,0], cosmos:[96,0],
+  sort:[48,30], ours:[66,72], worlds:[81,72], demo:[99,72], quiet:[30,96]
+};
+
+// fall cell
+actors.fall = place(makeRobot('g1_hi'), P.fall[0], P.fall[1], -.5);
+tintCell(P.fall[0], P.fall[1], COL.nv, CELL, .12);
+stencil('ENV_0002', P.fall[0] - 1.45, P.fall[1] - 1.25, { size:1.6 });
+// sim cell
+actors.sim = place(makeRobot('g1_hi'), P.sim[0], P.sim[1], -.35);
+tintCell(P.sim[0], P.sim[1], COL.nv, CELL, .12);
+stencil('ENV_0003', P.sim[0] - 1.45, P.sim[1] - 1.25, { size:1.6 });
+const crates = [];
+[[1.2, .9, .34], [1.55, -.5, .26], [.95, -1.05, .3]].forEach(([dx, dy, s], i) => {
+  const m = new T3.Mesh(new T3.BoxGeometry(s, s, s), new T3.MeshStandardMaterial({ color: i === 0 ? COL.nv : 0x9aa3ad, roughness:.6 }));
+  m.castShadow = true; m.userData = { x:P.sim[0] + dx, y:P.sim[1] + dy, s, ph:i*.9 }; scene.add(m); crates.push(m);
+});
+// camera frustum on G1's head
+const frustum = (() => {
+  const g = new T3.BufferGeometry(), d = 2.2, w = .95, h = .7;
+  const v = [0,0,0, d,w,h, 0,0,0, d,-w,h, 0,0,0, d,w,-h, 0,0,0, d,-w,-h, d,w,h, d,-w,h, d,-w,h, d,-w,-h, d,-w,-h, d,w,-h, d,w,-h, d,w,h];
+  g.setAttribute('position', new T3.Float32BufferAttribute(v, 3));
+  const l = new T3.LineSegments(g, new T3.LineBasicMaterial({ color:COL.nv, transparent:true, opacity:.9 }));
+  l.position.set(.08, 0, .42); l.rotation.y = .45; actors.sim.links['torso_link'].add(l); return l;
+})();
+// lidar sweep ring on the sim cell
+const lidar = (() => {
+  const N = 220, pos = new Float32Array(N*3);
+  const g = new T3.BufferGeometry(); g.setAttribute('position', new T3.BufferAttribute(pos, 3));
+  const p = new T3.Points(g, new T3.PointsMaterial({ color:COL.nv, size:.06, sizeAttenuation:true }));
+  scene.add(p); return { p, N, pos };
+})();
+
+// gpu cell: a lone robot waiting for hardware
+actors.gpu = place(makeRobot('g1_hi'), P.gpu[0], P.gpu[1], -.6);
+tintCell(P.gpu[0], P.gpu[1], COL.nv, CELL, .12);
+stencil('16 GB VRAM', P.gpu[0] - 1.45, P.gpu[1] - 1.25, { size:1.6 });
+// stack cell: the workload at the bottom of the axis
+actors.stack = place(makeRobot('g1_hi'), P.stack[0], P.stack[1], -.4);
+tintCell(P.stack[0], P.stack[1], COL.nv, CELL, .3);
+stencil('HEADLESS', P.stack[0] - 1.45, P.stack[1] - 1.25, { size:1.6 });
+// cosmos: same demo, four looks
+actors.cosmos = [];
+[[0, null], [1, 0xC9A27A], [2, 0x6F8FB3], [3, 0x8FB38A]].forEach(([i, tint]) => {
+  const x = P.cosmos[0] + (i % 2)*CELL, y = P.cosmos[1] + Math.floor(i/2)*CELL;
+  actors.cosmos.push(place(makeRobot('g1_lo', { tint: tint || undefined }), x, y, -.5));
+  tintCell(x, y, tint || COL.nv, CELL, i ? .22 : .12);
+});
+stencil('DEMO ×4', P.cosmos[0] - 1.45, P.cosmos[1] - 1.25, { size:1.6 });
+
+// sorting frame: orange / blue / green zones
+const zones = { nv:[P.sort[0] - 9, P.sort[1]], on:[P.sort[0], P.sort[1]], self:[P.sort[0] + 9, P.sort[1]] };
+Object.entries(zones).forEach(([k, [x, y]]) => {
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) tintCell(x + i*CELL, y + j*CELL, COL[k], CELL, .16);
+});
+actors.zone = [
+  place(makeRobot('g1_lo'), zones.nv[0], zones.nv[1], -.4),
+  place(makeRobot('go2_lo'), zones.on[0] - 1, zones.on[1] + .6, -.8),
+  place(makeRobot('g1_lo'), zones.on[0] + 1.6, zones.on[1] - 1.2, -.3),
+  place(makeRobot('go2_lo'), zones.self[0] + .4, zones.self[1] - .2, -.6),
+  place(makeRobot('g1_lo'), zones.self[0] - 2, zones.self[1] + 1.5, -.2),
+  place(makeRobot('g1_lo'), zones.self[0] + 2.2, zones.self[1] + 1.7, -.7),
+];
+stencil('NVIDIA STACK', zones.nv[0] - 2.2, zones.nv[1] - 4.9, { size:3.6, color:'rgba(184,58,11,.5)' });
+stencil('ONLINE', zones.on[0] - 2.2, zones.on[1] - 4.9, { size:3.6, color:'rgba(35,56,194,.5)' });
+stencil('YOU DEPLOY', zones.self[0] - 2.2, zones.self[1] - 4.9, { size:3.6, color:'rgba(17,115,79,.5)' });
+
+// our service: lab PC block + robots
+const pc = new T3.Group();
+{ const box = new T3.Mesh(new T3.BoxGeometry(1.1, .55, 1.25), new T3.MeshStandardMaterial({ color:COL.ink, roughness:.5, metalness:.3 }));
+  box.position.z = .625; box.castShadow = true; pc.add(box);
+  for (let i = 0; i < 5; i++){ const led = new T3.Mesh(new T3.BoxGeometry(.7, .02, .04), new T3.MeshBasicMaterial({ color:COL.self })); led.position.set(0, -.28, .3 + i*.18); pc.add(led); }
+  pc.position.set(P.ours[0] - 2.4, P.ours[1] + .4, 0); scene.add(pc); }
+for (let i = -1; i <= 1; i++) tintCell(P.ours[0] + i*CELL, P.ours[1], COL.self, CELL, .14);
+actors.ours = [ place(makeRobot('g1_hi'), P.ours[0] + .6, P.ours[1], -.5), place(makeRobot('go2_hi'), P.ours[0] + 3.4, P.ours[1] - .2, -.9) ];
+stencil('ENV_0014', P.ours[0] - 4.4, P.ours[1] - 1.25, { size:1.6 });
+
+// worlds: g1_mesa + go2_parque
+const W = P.worlds;
+for (let i = 0; i <= 2; i++) for (let j = -1; j <= 1; j++) tintCell(W[0] + i*CELL, W[1] + j*CELL, COL.self, CELL, .1);
+actors.mesaG1 = place(makeRobot('g1_hi'), W[0], W[1] + 2.4, -Math.PI/2 + .15);
+const table = new T3.Group();
+{ const top = new T3.Mesh(new T3.BoxGeometry(.8, 1.2, .04), new T3.MeshStandardMaterial({ color:0xb9a589, roughness:.7 })); top.position.z = .70; top.castShadow = true; top.receiveShadow = true; table.add(top);
+  [[-.35,-.55],[.35,-.55],[-.35,.55],[.35,.55]].forEach(([x,y]) => { const l = new T3.Mesh(new T3.BoxGeometry(.05,.05,.7), top.material); l.position.set(x,y,.35); l.castShadow = true; table.add(l); });
+  const apple = new T3.Mesh(new T3.SphereGeometry(.045, 20, 14), new T3.MeshStandardMaterial({ color:0xc8322a, roughness:.45 })); apple.position.set(-.1, -.12, .765); apple.castShadow = true; table.add(apple);
+  const bottle = new T3.Mesh(new T3.CylinderGeometry(.035, .035, .24, 20), new T3.MeshStandardMaterial({ color:0x4a7fd0, roughness:.25, transparent:true, opacity:.9 })); bottle.rotation.x = Math.PI/2; bottle.position.set(.12, .15, .84); bottle.castShadow = true; table.add(bottle);
+  table.position.set(W[0], W[1] + 1.65, 0); table.rotation.z = Math.PI/2; scene.add(table); }
+actors.go2 = place(makeRobot('go2_hi'), W[0] + 3, W[1], 0);
+const cones = [];
+for (let i = 0; i < 5; i++){
+  const c = new T3.Mesh(new T3.ConeGeometry(.16, .45, 20), new T3.MeshStandardMaterial({ color:0xFF7A1A, roughness:.6 }));
+  c.rotation.x = Math.PI/2; c.position.set(W[0] + 2.2 + i*1.25, W[1] - .2 + (i % 2 ? .0 : 0), .225); c.castShadow = true; scene.add(c); cones.push(c);
+}
+const wallM = new T3.MeshStandardMaterial({ color:0xc5ccd3, roughness:.9 });
+[[W[0] + 4.5, W[1] - 4.3, 9, .12], [W[0] + 9.2, W[1] - 1.2, .12, 6.2]].forEach(([x, y, w, h]) => { const m = new T3.Mesh(new T3.BoxGeometry(w, h, .9), wallM); m.position.set(x, y, .45); m.castShadow = true; m.receiveShadow = true; scene.add(m); });
+const scanG = (() => {
+  const N = 180, pos = new Float32Array(N*2*3);
+  const g = new T3.BufferGeometry(); g.setAttribute('position', new T3.BufferAttribute(pos, 3));
+  const rays = new T3.LineSegments(g, new T3.LineBasicMaterial({ color:COL.self, transparent:true, opacity:.28 }));
+  const pg = new T3.BufferGeometry(); const ppos = new Float32Array(N*3); pg.setAttribute('position', new T3.BufferAttribute(ppos, 3));
+  const pts = new T3.Points(pg, new T3.PointsMaterial({ color:COL.self, size:.07 }));
+  scene.add(rays, pts); return { N, pos, ppos, g, pg };
+})();
+const rc = new T3.Raycaster(); const scanTargets = [...cones, ...scene.children.filter(o => o.material === wallM)];
+stencil('GO2_PARQUE', W[0] + 1.6, W[1] - 2.6, { size:2.2, color:'rgba(17,115,79,.45)' });
+stencil('G1_MESA', W[0] - 1.45, W[1] + 3.75, { size:1.6, color:'rgba(17,115,79,.45)' });
+
+// demo: one robot waving at the room
+actors.demo = place(makeRobot('g1_hi'), P.demo[0], P.demo[1], -Math.PI/2 - .55);
+tintCell(P.demo[0], P.demo[1], COL.self, CELL, .2);
+
+// field stencils
+for (let i = -4; i < 4; i++) for (let j = -4; j < 4; j++){
+  if ((i + j) % 3) continue;
+  const n = (i + 16)*32 + (j + 16);
+  stencil('ENV_' + String(n).padStart(4, '0'), i*CELL - 1.4, j*CELL - 1.3, { size:1.1, color:'rgba(20,26,34,.16)' });
+}
+
+// neighbouring cells keep training: lo-LOD clones behind and to the right of each hero
+const neighbours = [];
+[[P.fall, 0], [P.sim, 1], [P.ours, 4], [P.demo, 5]].forEach(([c, n]) => {
+  [[0, 1], [1, 1], [1, 0], [0, 2], [1, 2], [2, 1], [2, 0]].forEach(([i, j], k) => {
+    if (c === P.ours && i === 0) return;
+    const r = place(makeRobot('g1_lo', { shadow:false }), c[0] + i*CELL + (c === P.ours ? 6 : 0), c[1] + j*CELL, -.4 + hash(n*7 + k)*.6);
+    r.ph = hash(n*13 + k)*6; r.fall = hash(n*3 + k*5); neighbours.push(r);
+  });
+});
+// initial poses + grounding
+Object.values(actors).flat().forEach(r => { if (r.key.startsWith('g1')) g1Rest(r); else go2Stand(r); r.ground(); });
+
+/* ---------------- scenes: camera + behaviour ---------------- */
+const SC = {
+  title:  { at:P.field, cam:[-17, -26, 15.5], look:[1.2, 1.5, 0], clones:64, shadowAt:[0,0] },
+  route:  { at:P.field, cam:[-4, -46, 30], look:[3, 6, 0], clones:256, shadowAt:[0,0] },
+  infra:  { at:P.field, cam:[-7, -19, 8], look:[1.5, 2, 0], clones:16, shadowAt:[0,0] },
+  omni:   { at:P.quiet, cam:[-6, -9, 8], look:[-3, 1, 0] },
+  brev:   { at:P.quiet, cam:[8, -10, 7], look:[1, 1.2, 0] },
+  osmo:   { at:P.field, cam:[24, -22, 11], look:[2, 5, 0], clones:256, shadowAt:[0,0] },
+  infra2: { at:P.field, cam:[-4, -46, 30], look:[3, 6, 0], clones:256, shadowAt:[0,0] },
+  fall:   { at:P.fall, cam:[-1.2, -6.4, 2.7], look:[-1.55, .2, .95] },
+  sim:    { at:P.sim, cam:[-1.6, -7.2, 3.3], look:[-1.9, .4, .8] },
+  lab:    { at:P.field, cam:[-1.6, -5.6, 2.3], look:[-1.4, 0, .9], clones:1, steps:[{ cam:[-15, -27, 15], look:[2.5, 5, 0], clones:FIELD_MAX, dur:3.2 }] },
+  lab2:   { at:P.field, cam:[22, -24, 9], look:[0, 4, 0], clones:FIELD_MAX },
+  gpu:    { at:P.gpu, cam:[-2.4, -6.5, 2.4], look:[-2.4, .4, 1.05] },
+  stack:  { at:P.stack, cam:[-3.3, -5.6, 5.2], look:[-3.0, .6, .9] },
+  steps:  { at:P.stack, cam:[1.2, -7.4, 3.0], look:[-3.4, .2, .9] },
+  cosmos: { at:P.cosmos, cam:[-.4, -12.5, 8.6], look:[-1.6, 1.6, .2] },
+  sort:   { at:P.sort, cam:[0, -23, 16], look:[0, 2.4, 0] },
+  online: { at:[P.sort[0], P.sort[1]], cam:[4.4, -9.2, 5.4], look:[-1.8, .4, .4] },
+  selfdep:{ at:[P.sort[0] + 9, P.sort[1]], cam:[4.4, -9.6, 5.6], look:[-1.4, .6, .4] },
+  compare:{ at:P.sort, cam:[0, -26, 26], look:[0, 3, 0] },
+  ours:   { at:P.ours, cam:[-1.2, -9.4, 4.4], look:[-3.6, .6, .7] },
+  arch:   { at:P.quiet, cam:[-6, -9, 8], look:[-3, 1, 0] },
+  zenoh:  { at:P.quiet, cam:[8, -10, 7], look:[1, 1.2, 0] },
+  worlds: { at:W, cam:[3.2, -10.5, 6.2], look:[-2.2, .9, .4] },
+  demo:   { at:P.demo, cam:[1.0, -4.9, 1.75], look:[-1.85, -.2, 1.0] },
+  close:  { at:P.sort, cam:[0, -23, 16], look:[0, 2.4, 0] },
+  end:    { at:P.field, cam:[-20, -30, 13], look:[3, 3, 0], clones:FIELD_MAX },
+};
+
+/* camera flight */
+const cam = { from:{ p:V(), l:V() }, to:{ p:V(), l:V() }, t:1, dur:1.6, t0:0, cur:{ p:V(), l:V() } };
+function abs(sc, v){ return V(sc.at[0] + v[0], sc.at[1] + v[1], v[2]); }
+function fly(p, l, dur){
+  cam.from.p.copy(cam.cur.p); cam.from.l.copy(cam.cur.l); cam.to.p.copy(p); cam.to.l.copy(l);
+  cam.t = 0; cam.t0 = performance.now(); cam.dur = REDUCED ? .001 : dur;
+}
+function stepCam(dt){
+  if (cam.t >= 1) return;
+  cam.t = Math.min(1, (performance.now() - cam.t0) / 1000 / cam.dur); // wall clock: lands on time even at low fps
+  const e = easeIO(cam.t), d = cam.from.p.distanceTo(cam.to.p);
+  cam.cur.p.lerpVectors(cam.from.p, cam.to.p, e); cam.cur.l.lerpVectors(cam.from.l, cam.to.l, e);
+  cam.cur.p.z += Math.sin(Math.PI*cam.t)*Math.min(14, d*.22);
+}
+
+/* ---------------- flap text (rail + counters) ---------------- */
+function flap(el, text){
+  text = String(text);
+  const old = el.dataset.v || ''; el.dataset.v = text;
+  if (el.children.length !== text.length){ el.innerHTML = [...text].map(c => `<b>${c === ' ' ? '&nbsp;' : c}</b>`).join(''); }
+  [...el.children].forEach((b, i) => {
+    b.classList.toggle('sp', text[i] === ' ');
+    const c = text[i] === ' ' ? ' ' : text[i];
+    if (old[i] === text[i] && b.textContent === c) return;
+    b.classList.remove('f'); void b.offsetWidth;
+    b.style.animationDelay = (i*38) + 'ms';
+    setTimeout(() => b.textContent = c, i*38 + 150);
+    b.classList.add('f');
+  });
+}
+
+/* ---------------- slides ---------------- */
+const slides = $$('.slide');
+const TINTS = { nv:'#FF5A1F', on:'#3557FF', self:'#1FA37A', ink:'#ffffff' };
+const map = $('#map');
+slides.forEach(s => { const i = document.createElement('i'); i.style.setProperty('--c', s.dataset.tint === 'ink' ? '#141A22' : TINTS[s.dataset.tint]); map.appendChild(i); });
+let cur = -1, step = 0;
+function sceneOf(i){ return SC[slides[i].dataset.scene]; }
+function applyStep(sc, k, first){
+  const s = k > 0 && sc.steps ? sc.steps[k - 1] : sc;
+  const p = abs(sc, s.cam), l = abs(sc, s.look);
+  if (first === 'jump'){ cam.cur.p.copy(p); cam.cur.l.copy(l); cam.t = 1; } else fly(p, l, s.dur || 1.7);
+  const want = s.clones ?? sc.clones ?? 0;
+  clone.st.visible = want > 0;
+  clone.st.growRate = k > 0 ? FIELD_MAX / 2.6 : 0;
+  clone.set(want, k === 0);
+  const shownN = k > 0 ? 1 : clone.st.target;
+  flap($('#railBots'), String(want ? shownN : countBots(slides[cur].dataset.scene)).padStart(4, '0'));
+  if (slides[cur].querySelector('#cloneCount')) flap($('#cloneCount'), (k > 0 ? clone.st.target : 1).toLocaleString('en'));
+  const sa = sc.shadowAt || sc.at; sun.position.set(sa[0] - 8, sa[1] - 12, 22); sun.target.position.set(sa[0], sa[1], 0);
+  slides[cur].querySelectorAll('[data-step]').forEach(e => e.classList.toggle('later', +e.dataset.step > k));
+}
+function countBots(name){ return ({ fall:8, sim:8, gpu:1, stack:1, steps:1, cosmos:4, sort:6, online:2, selfdep:3, compare:6, ours:6, arch:0, zenoh:0, worlds:2, demo:8, close:6 })[name] || 0; }
+function go(i, opts = {}){
+  i = clamp(i, 0, slides.length - 1);
+  if (i === cur && !opts.force) return;
+  const prev = cur; cur = i; step = opts.step || 0;
+  slides.forEach((s, k) => s.classList.toggle('on', k === i));
+  const s = slides[i], sc = sceneOf(i);
+  document.documentElement.style.setProperty('--rail-tint', TINTS[s.dataset.tint]);
+  $('#rail').style.setProperty('--rail-tint', TINTS[s.dataset.tint]);
+  $('#railSec').textContent = s.dataset.sec;
+  flap($('#railEnv'), String(i).padStart(4, '0'));
+  flap($('#railSlide'), `${String(i + 1).padStart(2, '0')}/${slides.length}`);
+  [...map.children].forEach((m, k) => { m.classList.toggle('cur', k === i); m.classList.toggle('done', k < i); });
+  applyStep(sc, step, prev < 0 ? 'jump' : '');
+  if (s.dataset.scene === 'lab2') startTrainLog();
+  if (s.dataset.scene === 'fall') flap(fallEl, String(falls).padStart(4, '0'));
+  history.replaceState(null, '', '#' + (i + 1));
+}
+function next(){ const sc = sceneOf(cur), n = (sc.steps || []).length; if (step < n){ step++; applyStep(sc, step); } else go(cur + 1); }
+function prev(){ if (step > 0){ step--; applyStep(sceneOf(cur), step); } else go(cur - 1); }
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  const k = e.key;
+  if (['ArrowRight','PageDown',' ','Enter','ArrowDown'].includes(k)){ e.preventDefault(); next(); }
+  else if (['ArrowLeft','PageUp','Backspace','ArrowUp'].includes(k)){ e.preventDefault(); prev(); }
+  else if (k === 'Home') go(0); else if (k === 'End') go(slides.length - 1);
+  else if (k === 'f' || k === 'F'){ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  else if (k === 'q' || k === 'Q'){ QUALITY = QUALITY ? 0 : 1; resize(); }
+});
+let tx = null;
+addEventListener('touchstart', e => tx = e.touches[0].clientX, { passive:true });
+addEventListener('touchend', e => { if (tx == null) return; const d = e.changedTouches[0].clientX - tx; if (Math.abs(d) > 40) (d < 0 ? next : prev)(); tx = null; });
+addEventListener('click', e => { if (e.target.closest('a,button')) return; (e.clientX > innerWidth*.25 ? next : prev)(); });
+
+/* ---------------- illustrative train log ---------------- */
+let logTimer = null;
+function startTrainLog(){
+  const el = $('#trainLog'); el.innerHTML = ''; clearInterval(logTimer);
+  let it = 0, r = -.6;
+  logTimer = setInterval(() => {
+    it += 50; r += (3.9 - r)*.16 + (hash(it)*.4 - .2);
+    const line = document.createElement('div'); line.className = 'ln';
+    line.innerHTML = `  iter <span class="hl">${String(it).padStart(4, ' ')}</span>  reward <span class="ok">${r.toFixed(2).padStart(6, ' ')}</span>`;
+    el.appendChild(line); while (el.children.length > 5) el.firstChild.remove();
+    if (it >= 1500 || slides[cur].dataset.scene !== 'lab2') clearInterval(logTimer);
+  }, 420);
+}
+
+/* ---------------- frame scaling + resize ---------------- */
+const frame = $('#frame');
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY ? 2 : 1));
+  renderer.setSize(w, h, false);
+  renderer.shadowMap.enabled = !!QUALITY; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
+  clone.st.shadows = QUALITY > 0;
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  const s = Math.min(w/1600, (h - 46)/900);
+  frame.style.transform = `translate(${-800*s}px, ${-450*s - 23}px) scale(${s})`;
+}
+addEventListener('resize', resize);
+
+/* ---------------- loop ---------------- */
+let last = performance.now(), T = 0, falls = 0, lastFallPhase = 0;
+const fallEl = $('#fallCount'); const rw = [], rwc = $('#reward');
+function tick(now){
+  const dt = Math.min(.05, (now - last)/1000); last = now; T += dt;
+  stepCam(dt);
+  camera.position.copy(cam.cur.p); camera.lookAt(cam.cur.l);
+  const name = cur >= 0 ? slides[cur].dataset.scene : '';
+  // clone growth for the multiply step
+  const st = clone.st;
+  if (st.shown < st.target) st.shown = Math.min(st.target, st.shown + (st.growRate || 1e9)*dt);
+  clone.update(T, now);
+  if (name === 'lab' && step > 0 && Math.round(st.shown) !== tick.n){
+    tick.n = Math.round(st.shown);
+    const rb = $('#railBots').children, txt = String(tick.n).padStart(4, '0');
+    [...rb].forEach((b, i) => b.textContent = txt[i]);
+  }
+
+  // fall cell: trial, fall, respawn
+  { const r = actors.fall, per = 3.6, ph = (T % per)/per;
+    g1Pose(r, T*1.4, 0, .9);
+    let a = 0, s = 1;
+    if (ph > .55){ const f = (ph - .55)/.25; a = f < 1 ? Math.pow(f, 2)*1.5 : 1.5; }
+    if (ph > .88) s = 1 - (ph - .88)/.12;
+    if (ph < .06) s = ph/.06;
+    r.root.rotation.set(0, 0, -.5); r.body.rotation.set(-a, 0, 0); r.root.scale.setScalar(Math.max(.001, s));
+    if (lastFallPhase < .8 && ph >= .8){ falls++; if (name === 'fall') flap(fallEl, String(falls).padStart(4, '0')); }
+    lastFallPhase = ph; }
+  // sim cell
+  g1Pose(actors.sim, T*.8, 1, .5);
+  crates.forEach(c => { const u = c.userData, per = 3.2, ph = ((T + u.ph) % per)/per, h = 2.4;
+    const z = ph < .45 ? h*(1 - Math.pow(ph/.45, 2)) : Math.abs(Math.sin((ph - .45)/.55*Math.PI*3))*Math.pow(1 - (ph - .45)/.55, 2)*.45;
+    c.position.set(u.x, u.y, u.s/2 + z); c.rotation.z = u.ph + ph*.3; });
+  { const L = lidar, cx = P.sim[0], cy = P.sim[1];
+    for (let i = 0; i < L.N; i++){ const a = i/L.N*Math.PI*2 + T*.9, r = 2.6 + .25*Math.sin(a*5 + T) + (i % 7 === 0 ? -.6 : 0);
+      L.pos[i*3] = cx + Math.cos(a)*r; L.pos[i*3+1] = cy + Math.sin(a)*r; L.pos[i*3+2] = .05 + (i % 3)*.25; }
+    L.p.geometry.attributes.position.needsUpdate = true; }
+  frustum.material.opacity = .55 + .35*Math.sin(T*3);
+  neighbours.forEach(r => { g1Pose(r, T*1.2, r.ph, .9);
+    const per = 6 + r.fall*6, ph = ((T + r.ph*3) % per)/per; let a = 0, sc = 1;
+    if (r.fall > .45 && ph > .78){ const f = (ph - .78)/.22; a = Math.min(1.45, Math.pow(f/.6, 2)*1.45); if (f > .8) sc = 1 - (f - .8)/.2; }
+    if (r.fall > .45 && ph < .04) sc = ph/.04;
+    r.body.rotation.x = -a; r.root.scale.setScalar(Math.max(.001, sc)); });
+  // rail telemetry: episode counter + illustrative reward curve
+  if ((tick.f = (tick.f || 0) + 1) % 6 === 0){
+    const ep = Math.floor(T*37);
+    const re = $('#railEp'); const txt = String(ep).padStart(6, '0');
+    if (re.children.length !== 6) flap(re, txt); else [...re.children].forEach((b, i) => b.textContent = txt[i]);
+    rw.push(3.9*(1 - Math.exp(-T/40)) + Math.sin(T*2.3)*.25 + (hash(T) - .5)*.5); if (rw.length > 140) rw.shift();
+    const g = rwc.getContext('2d'), tc = TINTS[slides[cur].dataset.tint]; g.clearRect(0, 0, 280, 44); g.strokeStyle = tc === '#ffffff' ? '#E6E9EC' : tc; g.lineWidth = 3; g.beginPath();
+    rw.forEach((v, i) => { const x = i*2, y = 40 - (v + .8)/5.2*36; i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+  }
+  g1Pose(actors.gpu, T*.6, 2, .25);
+  g1Pose(actors.stack, T*1.2, 3, .9);
+  actors.cosmos.forEach((r, i) => g1Pose(r, T*1.3, 0, .9));
+  actors.zone.forEach((r, i) => r.key.startsWith('g1') && g1Pose(r, T, i, .7));
+  g1Pose(actors.ours[0], T*.9, 4, .6);
+  // g1_mesa: reach for the apple
+  { const r = actors.mesaG1, s = (1 + Math.sin(T*1.1))/2;
+    r.set('right_shoulder_pitch_joint', lerp(-.2, -1.05, s)); r.set('right_shoulder_roll_joint', -.15); r.set('right_elbow_joint', lerp(1.1, .35, s));
+    r.set('left_shoulder_pitch_joint', -.2); r.set('left_elbow_joint', 1.0); r.set('left_shoulder_roll_joint', .2); r.set('waist_yaw_joint', -.15*s); }
+  // go2_parque: cmd_vel slides the body through the slalom
+  { const r = actors.go2, u = (T*.11) % 1, x0 = W[0] + 1.4, len = 7.2;
+    const x = x0 + u*len, y = W[1] - .2 + Math.sin(u*Math.PI*5.6)*.62, dy = Math.cos(u*Math.PI*5.6)*.62*Math.PI*5.6/len;
+    r.root.position.set(x, y, 0); r.root.rotation.z = Math.atan(dy);
+    if (name === 'worlds' || name === 'zenoh'){
+      const S = scanG, o = V(x, y, .35); let k = 0;
+      for (let i = 0; i < S.N; i++){
+        const a = i/S.N*Math.PI*2; const d = V(Math.cos(a), Math.sin(a), 0);
+        rc.set(o, d); rc.far = 6; const hit = rc.intersectObjects(scanTargets, false)[0];
+        const e = hit ? hit.point : o.clone().addScaledVector(d, 6);
+        S.pos.set([o.x, o.y, o.z, e.x, e.y, e.z], i*6); if (hit) S.ppos.set([e.x, e.y, e.z], (k++)*3);
+      }
+      S.pg.setDrawRange(0, k); S.g.attributes.position.needsUpdate = true; S.pg.attributes.position.needsUpdate = true;
+    } }
+  // demo: wave
+  { const r = actors.demo; r.set('right_shoulder_roll_joint', -1.25); r.set('right_shoulder_pitch_joint', -.5); r.set('right_shoulder_yaw_joint', 0);
+    r.set('right_elbow_joint', .45 + .4*Math.sin(T*5)); r.set('left_shoulder_roll_joint', .2); r.set('left_elbow_joint', .9); r.set('waist_yaw_joint', .1*Math.sin(T)); }
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+
+/* ---------------- boot ---------------- */
+resize();
+const startIdx = clamp((parseInt(location.hash.slice(1)) || 1) - 1, 0, slides.length - 1);
+Promise.all([document.fonts.load('900 200px "Big Shoulders Display"'), document.fonts.load('600 16px "JetBrains Mono"'), document.fonts.ready]).catch(() => {}).then(() => {
+  stencils.forEach(f => f());
+  go(startIdx);
+  requestAnimationFrame(tick);
+  $('#loader').classList.add('gone');
+  $('#hint').classList.add('show'); setTimeout(() => $('#hint').classList.remove('show'), 4200);
+});
+})();
+</script>
+</body>
+</html>
