@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=RViz2
+Exec=konsole --hold -e bash -ic "rviz2"
+Icon=applications-graphics
+Terminal=false

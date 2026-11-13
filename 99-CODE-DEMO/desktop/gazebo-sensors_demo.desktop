@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Gazebo: sensors_demo
+Exec=konsole --hold -e /usr/local/bin/sim sensors_demo
+Icon=applications-science
+Terminal=false

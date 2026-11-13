@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Gazebo: shapes
+Exec=konsole --hold -e /usr/local/bin/sim shapes
+Icon=applications-science
+Terminal=false

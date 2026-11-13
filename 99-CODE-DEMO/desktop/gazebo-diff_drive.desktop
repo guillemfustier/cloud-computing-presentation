@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Gazebo: diff_drive
+Exec=konsole --hold -e /usr/local/bin/sim diff_drive
+Icon=applications-science
+Terminal=false
