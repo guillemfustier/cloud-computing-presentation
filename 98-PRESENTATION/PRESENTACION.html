@@ -1024,7 +1024,9 @@ const neighbours = [];
   });
 });
 // initial poses + grounding
-Object.values(actors).flat().forEach(r => { if (r.key.startsWith('g1')) g1Rest(r); else go2Stand(r); r.ground(); });
+Object.values(actors).flat().concat(neighbours).forEach(r => { if (r.key.startsWith('g1')) g1Rest(r); else go2Stand(r); r.h0 = r.ground(); });
+// caída como un tablón: gira sobre los pies (no sobre la pelvis) para que el cuerpo acabe en el suelo, no flotando ni hundido
+function tip(r, a){ r.body.rotation.set(-a, 0, 0); r.body.position.set(0, r.h0*Math.sin(a), r.h0*Math.cos(a)); }
 
 /* ---------------- scenes: camera + behaviour ---------------- */
 const SC = {
@@ -1195,7 +1197,7 @@ function tick(now){
     if (ph > .55){ const f = (ph - .55)/.25; a = f < 1 ? Math.pow(f, 2)*1.5 : 1.5; }
     if (ph > .88) s = 1 - (ph - .88)/.12;
     if (ph < .06) s = ph/.06;
-    r.root.rotation.set(0, 0, -.5); r.body.rotation.set(-a, 0, 0); r.root.scale.setScalar(Math.max(.001, s));
+    r.root.rotation.set(0, 0, -.5); tip(r, a); r.root.scale.setScalar(Math.max(.001, s));
     if (lastFallPhase < .8 && ph >= .8){ falls++; if (name === 'fall') flap(fallEl, String(falls).padStart(4, '0')); }
     lastFallPhase = ph; }
   // sim cell
@@ -1212,7 +1214,7 @@ function tick(now){
     const per = 6 + r.fall*6, ph = ((T + r.ph*3) % per)/per; let a = 0, sc = 1;
     if (r.fall > .45 && ph > .78){ const f = (ph - .78)/.22; a = Math.min(1.45, Math.pow(f/.6, 2)*1.45); if (f > .8) sc = 1 - (f - .8)/.2; }
     if (r.fall > .45 && ph < .04) sc = ph/.04;
-    r.body.rotation.x = -a; r.root.scale.setScalar(Math.max(.001, sc)); });
+    tip(r, a); r.root.scale.setScalar(Math.max(.001, sc)); });
   // rail telemetry: episode counter + illustrative reward curve
   if ((tick.f = (tick.f || 0) + 1) % 6 === 0){
     const ep = Math.floor(T*37);
