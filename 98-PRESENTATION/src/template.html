@@ -114,6 +114,12 @@ tr.x td{color:var(--nv-ink)}
 #map i.done{background:var(--c,var(--ink-3));border-color:var(--c,var(--ink-3));opacity:.55}
 #map i.cur{background:var(--c,var(--ink));border-color:var(--ink);transform:scale(1.35)}
 
+/* screenshots */
+.shot{position:absolute;box-shadow:0 24px 50px -20px rgba(20,26,34,.55);background:var(--ink)}
+.shot img{display:block;width:100%;height:auto}
+.shot .lb{position:absolute;font-family:var(--mono);font-size:15px;font-weight:600;color:var(--floor);background:var(--ink);padding:4px 9px;border-left:4px solid var(--nv)}
+.shot-src{font-family:var(--mono);font-size:13px;color:var(--ink-3);margin-top:8px;max-width:none}
+
 /* diagrams */
 .dg{position:absolute}
 svg{overflow:visible}
@@ -426,16 +432,29 @@ svg{overflow:visible}
 
 <!-- ============ 03 ISAAC SIM ============ -->
 <section class="slide" data-scene="sim" data-sec="Isaac in the cloud" data-tint="nv">
-  <div class="wash" style="--w:50%"></div>
-  <div class="col" style="width:780px">
+  <div class="wash full" style="background:rgba(230,233,236,.9)"></div>
+  <div class="col" style="width:500px">
     <h2 class="rv" style="--d:1">Isaac Sim is <span class="t">the world</span></h2>
-    <p class="src rv" style="--d:2">NVIDIA · built on Omniverse + OpenUSD · open source, Apache 2.0</p>
-    <div class="pillars rv" style="--d:3;margin-top:30px;max-width:720px">
+    <p class="src rv" style="--d:2">NVIDIA · Omniverse + OpenUSD · Apache 2.0</p>
+    <div class="pillars rv" style="--d:3;margin-top:28px;max-width:500px">
       <div><div class="rule t"></div><h3>Physics</h3><p>PhysX · Newton</p></div>
       <div><div class="rule t"></div><h3>RTX sensors</h3><p>Camera · depth · LiDAR · IMU</p></div>
     </div>
-    <div class="flow sm rv" style="--d:4;margin-top:44px"><span class="n">Import<small>URDF · CAD · USD</small></span><span class="a"></span><span class="n">Configure<small>sensors · physics</small></span><span class="a"></span><span class="n hot" style="background:var(--nv);border-color:var(--nv)">Simulate<small>Replicator data</small></span><span class="a"></span><span class="n">Connect<small>Isaac Lab · ROS 2</small></span></div>
   </div>
+  <div class="dg rv" style="--d:4;left:96px;top:690px">
+    <div class="flow sm" style="margin-top:0"><span class="n">Import<small>URDF · CAD · USD</small></span><span class="a"></span><span class="n">Configure<small>sensors · physics</small></span><span class="a"></span><span class="n hot" style="background:var(--nv);border-color:var(--nv)">Simulate<small>Replicator data</small></span><span class="a"></span><span class="n">Connect<small>Isaac Lab · ROS 2</small></span></div>
+  </div>
+  <div class="shot rv" style="--d:2;left:640px;top:92px;width:864px">
+    <img src="@@IMG:isaac-sim-gui@@" alt="Isaac Sim interface: viewport, stage tree, property panel and asset browser">
+    <span class="lb" style="left:14px;top:46px">Viewport</span>
+    <span class="lb" style="left:612px;top:46px">Stage</span>
+    <span class="lb" style="left:612px;top:262px">Properties</span>
+    <span class="lb" style="left:14px;top:318px">Assets</span>
+  </div>
+  <div class="shot" data-step="1" style="left:640px;top:92px;width:864px">
+    <img src="@@IMG:isaac-sim-warehouse@@" alt="Humanoid robot in an Isaac Sim warehouse scene">
+  </div>
+  <p class="shot-src rv" style="--d:3;position:absolute;left:640px;top:572px;max-width:none">Screenshots: NVIDIA Isaac Sim documentation</p>
 </section>
 
 <!-- ============ 04 ISAAC LAB ============ -->
@@ -445,6 +464,8 @@ svg{overflow:visible}
     <h2 class="rv" style="--d:1">Isaac Lab is <span class="t">the training</span></h2>
     <p class="lede rv" style="--d:2">One GPU. <strong id="cloneCount" class="flap" style="font-family:var(--mono)"></strong> copies of the robot.</p>
     <div class="tags rv" style="--d:3;margin-top:22px;max-width:600px"><span class="tag d">on top of Isaac Sim</span><span class="tag">open source</span><span class="tag">arms · ANYmal · Spot · G1</span><span class="tag">multi-GPU · multi-node</span><span class="tag">cloud + HPC docs</span></div>
+    <div class="rv" style="--d:4;margin-top:28px;width:620px;box-shadow:0 24px 50px -20px rgba(20,26,34,.55)"><img src="@@IMG:isaac-lab-tasks@@" alt="Grid of Isaac Lab environments: arms, humanoids and quadrupeds" style="display:block;width:100%"></div>
+    <p class="shot-src rv" style="--d:4">Built-in environments · image: Isaac Lab documentation</p>
   </div>
 </section>
 
@@ -462,6 +483,7 @@ svg{overflow:visible}
           <div id="trainLog"></div>
         </div>
         <p style="margin-top:20px"><strong>Batch job</strong> → ideal for the cloud</p>
+        <p class="src" style="margin-top:10px">Reward log is illustrative, not a recorded run.</p>
       </div>
       <div>
         <div class="term-h"><span>2 · play</span><span>window streamed to the browser</span></div>
@@ -470,10 +492,10 @@ svg{overflow:visible}
           <div class="ln">    --task Isaac-Ant-v0 <span class="hl">--livestream 2</span></div>
           <div class="ln ok">  streaming viewport…</div>
         </div>
-        <p style="margin-top:20px"><strong>Graphics GPU</strong> + a stream to your screen</p>
+        <div style="margin-top:14px;box-shadow:0 24px 50px -20px rgba(20,26,34,.55)"><img src="@@IMG:isaac-lab-humanoids@@" alt="Isaac Lab humanoids walking on stepped terrain" style="display:block;width:100%"></div>
+        <p class="shot-src">What the stream shows · image: Isaac Lab documentation</p>
       </div>
     </div>
-    <p class="src rv" style="--d:3;margin-top:34px">Reward log is illustrative, not a recorded run.</p>
   </div>
 </section>
 
@@ -540,24 +562,6 @@ svg{overflow:visible}
       <circle class="pk" r="7"><animateMotion dur="1.4s" begin=".7s" repeatCount="indefinite"><mpath href="#pRtc"/></animateMotion></circle>
       <circle r="6" fill="var(--ink)"><animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#pHttps"/></animateMotion></circle>
     </svg>
-  </div>
-</section>
-
-<!-- ============ 08 LAUNCHABLE STEPS ============ -->
-<section class="slide" data-scene="steps" data-sec="Isaac in the cloud" data-tint="nv">
-  <div class="wash"></div>
-  <div class="col" style="width:720px">
-    <h2 class="rv" style="--d:1;font-size:84px">From click to <span class="t">viewport</span></h2>
-    <ol class="steps rv" style="--d:2;gap:16px">
-      <li><span><b>Deploy</b> the Launchable · first boot is slow</span></li>
-      <li><span><b>Secure link</b> → log in with NVIDIA</span></li>
-      <li><span>Tab 1 · <b>VS Code</b> in the browser</span></li>
-      <li><span><code>runheadless.sh</code> → <code>app ready</code></span></li>
-      <li><span>Tab 2 · <code>/viewer</code> → <b>Isaac Sim GUI</b></span></li>
-      <li><span><b>Upload</b> your own robot</span></li>
-      <li><span><b>Stop</b> it · then you only pay storage</span></li>
-    </ol>
-    <p class="src rv" style="--d:3;margin-top:22px">Custom Launchable: VM mode · git clone + docker compose up · port 80 · RT-core GPU</p>
   </div>
 </section>
 
@@ -1024,7 +1028,7 @@ const SC = {
   osmo:   { at:P.field, cam:[24, -22, 11], look:[2, 5, 0], clones:256, shadowAt:[0,0] },
   infra2: { at:P.field, cam:[-4, -46, 30], look:[3, 6, 0], clones:256, shadowAt:[0,0] },
   fall:   { at:P.fall, cam:[-1.2, -6.4, 2.7], look:[-1.55, .2, .95] },
-  sim:    { at:P.sim, cam:[-1.6, -7.2, 3.3], look:[-1.9, .4, .8] },
+  sim:    { at:P.sim, cam:[-1.6, -7.2, 3.3], look:[-1.9, .4, .8], steps:[{ cam:[-1.6, -7.2, 3.3], look:[-1.9, .4, .8] }] },
   lab:    { at:P.field, cam:[-1.6, -5.6, 2.3], look:[-1.4, 0, .9], clones:1, steps:[{ cam:[-15, -27, 15], look:[2.5, 5, 0], clones:FIELD_MAX, dur:3.2 }] },
   lab2:   { at:P.field, cam:[22, -24, 9], look:[0, 4, 0], clones:FIELD_MAX },
   gpu:    { at:P.gpu, cam:[-2.4, -6.5, 2.4], look:[-2.4, .4, 1.05] },
