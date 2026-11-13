@@ -37,7 +37,7 @@ No programamos ninguna plataforma. Solo añadimos ROS 2 a la imagen de Selkies y
 | [`Dockerfile`](../../99-CODE-DEMO/Dockerfile) | Parte de Selkies 24.04 y añade ROS 2 Jazzy (`ros-base`), Gazebo Harmonic + `ros_gz_bridge`, `rmw_zenoh_cpp`, RViz2 y `teleop_twist_keyboard` |
 | [`zenohd.conf`](../../99-CODE-DEMO/zenohd.conf) | Programa de supervisord: arranca el **router Zenoh** al iniciar el contenedor |
 | [`sim.sh`](../../99-CODE-DEMO/sim.sh) | Comando `sim <mundo>`: lanza Gazebo con el mundo y el bridge Gazebo ↔ ROS 2 |
-| [`worlds/`](../../99-CODE-DEMO/worlds) | Un directorio por mundo con su `bridge.yaml`; el `world.sdf` se copia de los ejemplos de Gazebo al construir |
+| [`worlds/`](../../99-CODE-DEMO/worlds) | Un directorio por mundo con su `bridge.yaml`; el `world.sdf` se copia de los ejemplos de Gazebo al construir, salvo en `g1_mesa` y `go2_parque`, que traen el suyo y los modelos Unitree en `models/` |
 | [`desktop/`](../../99-CODE-DEMO/desktop) | Accesos directos en el escritorio: *Gazebo: diff_drive*, *sensors_demo*, *shapes* y *RViz2* |
 | [`run.sh`](../../99-CODE-DEMO/run.sh) | Lanza o para la sesión `n`, cada una con sus propios puertos y contraseña |
 
@@ -72,6 +72,8 @@ ROS 2 usa DDS por defecto, que descubre los nodos por **multicast**. Las WiFi de
 | `diff_drive` | `/cmd_vel` (entrada, mueve el coche azul), `/odom`, `/clock` |
 | `sensors_demo` | `/camera`, `/scan`, `/clock` |
 | `shapes` | `/clock` |
+| `g1_mesa` | Humanoide Unitree G1 (29 articulaciones) anclado ante una mesa: `/g1/cmd/<articulación>` (entrada), `/g1/joint_states`, `/g1/camara`, `/clock` |
+| `go2_parque` | Cuadrúpedo Unitree Go2 en un parque de 16 × 16 m: `/go2/cmd_vel` (entrada, desliza el cuerpo sin caminar), `/go2/cmd/<articulación>`, `/go2/odom`, `/go2/imu`, `/go2/scan`, `/go2/points`, `/go2/camara`, `/clock` |
 
 Para añadir un mundo: crear `worlds/<nombre>/world.sdf` y `bridge.yaml` (tabla de tipos en el README de `ros_gz_bridge`) y reconstruir la imagen.
 

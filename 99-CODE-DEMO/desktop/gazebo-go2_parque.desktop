@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Gazebo: go2_parque
+Exec=konsole --hold -e /usr/local/bin/sim go2_parque
+Icon=applications-science
+Terminal=false

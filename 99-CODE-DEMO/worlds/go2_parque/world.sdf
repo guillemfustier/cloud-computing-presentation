@@ -1,0 +1,296 @@
+<?xml version="1.0" ?>
+<!--
+  Unitree Go2 en un recinto de 16 x 16 m con dos salas, conos, cajas y columnas.
+
+  Modelo generado con tools/build_unitree_models.py; necesita
+  GZ_SIM_RESOURCE_PATH=<este directorio>/models.
+
+  Desplazar el robot (velocidades en el marco del cuerpo):
+    gz topic -t /go2/cmd_vel -m gz.msgs.Twist -p "linear: {x: 0.5}, angular: {z: 0.3}"
+
+  cmd_vel no es locomoción: VelocityControl mueve el cuerpo entero mientras las
+  patas mantienen la postura de pie. Para programar una marcha propia hay que
+  mandar las 12 articulaciones (/go2/cmd/<articulación>) y no usar cmd_vel.
+
+  Sensores: /go2/imu, /go2/lidar (+ /go2/lidar/points), /go2/camara, /go2/odom
+-->
+<sdf version="1.11">
+  <world name="go2_parque">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+
+    <gui fullscreen="0">
+      <camera name="user_camera">
+        <pose>-10 -9 8 0 0.5 0.75</pose>
+      </camera>
+    </gui>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.5 0.5 0.5 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>40 40</size></plane></geometry>
+          <surface><friction><ode><mu>0.8</mu><mu2>0.8</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>40 40</size></plane></geometry>
+          <material>
+            <ambient>0.45 0.55 0.4 1</ambient>
+            <diffuse>0.45 0.55 0.4 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Go2 de pie en la sala de salida, mirando a +X (hacia los conos) -->
+    <include>
+      <uri>model://go2</uri>
+      <name>go2</name>
+      <pose>-6 0 0.34 0 0 0</pose>
+    </include>
+
+    <!-- Muros exteriores: recinto de 16 x 16 m -->
+    <model name="muro_norte">
+      <static>true</static>
+      <pose>0 8 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>16.2 0.2 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>16.2 0.2 1.0</size></box></geometry>
+          <material><ambient>0.85 0.85 0.82 1</ambient><diffuse>0.85 0.85 0.82 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="muro_sur">
+      <static>true</static>
+      <pose>0 -8 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>16.2 0.2 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>16.2 0.2 1.0</size></box></geometry>
+          <material><ambient>0.85 0.85 0.82 1</ambient><diffuse>0.85 0.85 0.82 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="muro_este">
+      <static>true</static>
+      <pose>8 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 16 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 16 1.0</size></box></geometry>
+          <material><ambient>0.85 0.85 0.82 1</ambient><diffuse>0.85 0.85 0.82 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="muro_oeste">
+      <static>true</static>
+      <pose>-8 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 16 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 16 1.0</size></box></geometry>
+          <material><ambient>0.85 0.85 0.82 1</ambient><diffuse>0.85 0.85 0.82 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <!-- Tabique en x = 2 con una puerta de 2 m entre y = -1 y y = 1 -->
+    <model name="tabique_sur">
+      <static>true</static>
+      <pose>2 -4.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 7 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 7 1.0</size></box></geometry>
+          <material><ambient>0.85 0.85 0.82 1</ambient><diffuse>0.85 0.85 0.82 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="tabique_norte">
+      <static>true</static>
+      <pose>2 4.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 7 1.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 7 1.0</size></box></geometry>
+          <material><ambient>0.85 0.85 0.82 1</ambient><diffuse>0.85 0.85 0.82 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <!-- Sala de salida: slalom de conos delante del robot -->
+    <model name="cono_1">
+      <static>true</static>
+      <pose>-3.5 0.6 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.12</radius><length>0.5</length></cylinder></geometry></collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.5</length></cylinder></geometry>
+          <material><ambient>1.0 0.45 0.05 1</ambient><diffuse>1.0 0.45 0.05 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="cono_2">
+      <static>true</static>
+      <pose>-2 -0.6 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.12</radius><length>0.5</length></cylinder></geometry></collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.5</length></cylinder></geometry>
+          <material><ambient>1.0 0.45 0.05 1</ambient><diffuse>1.0 0.45 0.05 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="cono_3">
+      <static>true</static>
+      <pose>-0.5 0.6 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.12</radius><length>0.5</length></cylinder></geometry></collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.12</radius><length>0.5</length></cylinder></geometry>
+          <material><ambient>1.0 0.45 0.05 1</ambient><diffuse>1.0 0.45 0.05 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="caja_1">
+      <static>true</static>
+      <pose>-5 4 0.3 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.8 0.8 0.6</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.8 0.8 0.6</size></box></geometry>
+          <material><ambient>0.6 0.45 0.25 1</ambient><diffuse>0.6 0.45 0.25 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="caja_2">
+      <static>true</static>
+      <pose>-3 5.5 0.2 0 0 0.4</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 0.6 0.4</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>1.2 0.6 0.4</size></box></geometry>
+          <material><ambient>0.6 0.45 0.25 1</ambient><diffuse>0.6 0.45 0.25 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="caja_3">
+      <static>true</static>
+      <pose>-5.5 -4.5 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.0 1.0 0.8</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>1.0 1.0 0.8</size></box></geometry>
+          <material><ambient>0.6 0.45 0.25 1</ambient><diffuse>0.6 0.45 0.25 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="banco">
+      <static>true</static>
+      <pose>-1 -5 0.225 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>2.0 0.5 0.45</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>2.0 0.5 0.45</size></box></geometry>
+          <material><ambient>0.35 0.35 0.4 1</ambient><diffuse>0.35 0.35 0.4 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <!-- Segunda sala: columnas y palés -->
+    <model name="columna_1">
+      <static>true</static>
+      <pose>4 3 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.25</radius><length>2.5</length></cylinder></geometry></collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>2.5</length></cylinder></geometry>
+          <material><ambient>0.7 0.7 0.75 1</ambient><diffuse>0.7 0.7 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="columna_2">
+      <static>true</static>
+      <pose>6 3 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.25</radius><length>2.5</length></cylinder></geometry></collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>2.5</length></cylinder></geometry>
+          <material><ambient>0.7 0.7 0.75 1</ambient><diffuse>0.7 0.7 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="columna_3">
+      <static>true</static>
+      <pose>4 -3 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.25</radius><length>2.5</length></cylinder></geometry></collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>2.5</length></cylinder></geometry>
+          <material><ambient>0.7 0.7 0.75 1</ambient><diffuse>0.7 0.7 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="columna_4">
+      <static>true</static>
+      <pose>6 -3 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.25</radius><length>2.5</length></cylinder></geometry></collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>2.5</length></cylinder></geometry>
+          <material><ambient>0.7 0.7 0.75 1</ambient><diffuse>0.7 0.7 0.75 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pale_1">
+      <static>true</static>
+      <pose>5 0 0.075 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 0.8 0.15</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>1.2 0.8 0.15</size></box></geometry>
+          <material><ambient>0.75 0.6 0.4 1</ambient><diffuse>0.75 0.6 0.4 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pale_2">
+      <static>true</static>
+      <pose>6.5 6 0.45 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 0.8 0.9</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>1.2 0.8 0.9</size></box></geometry>
+          <material><ambient>0.4 0.5 0.65 1</ambient><diffuse>0.4 0.5 0.65 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="pale_3">
+      <static>true</static>
+      <pose>3.5 -6.5 0.45 0 0 1.57</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 0.8 0.9</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>1.2 0.8 0.9</size></box></geometry>
+          <material><ambient>0.4 0.5 0.65 1</ambient><diffuse>0.4 0.5 0.65 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

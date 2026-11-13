@@ -59,7 +59,7 @@ Parar la sesión:
 1. Abrir `https://<ip-servidor>:8080` en el navegador.
 2. Aceptar el aviso del certificado (es autofirmado).
 3. Entrar con usuario `ubuntu` y contraseña `sjk005-seminar-user-0`.
-4. En el escritorio, doble clic en **Gazebo: diff_drive**.
+4. En el escritorio, doble clic en **Gazebo: diff_drive** (o **Gazebo: g1_mesa** / **Gazebo: go2_parque** para los robots Unitree).
 
 ## 3. Usuario: conectar nodos ROS 2 por Zenoh
 

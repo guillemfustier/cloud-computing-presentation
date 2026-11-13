@@ -1,5 +1,5 @@
 #!/bin/bash
-# Uso: sim <mundo>    (diff_drive | sensors_demo | shapes)
+# Uso: sim <mundo>    (diff_drive | sensors_demo | shapes | g1_mesa | go2_parque)
 # Arranca Gazebo con el mundo y el bridge Gazebo <-> ROS 2 definido en su bridge.yaml.
 W="${1:-diff_drive}"
 D="/opt/worlds/$W"

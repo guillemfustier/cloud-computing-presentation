@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Gazebo: g1_mesa
+Exec=konsole --hold -e /usr/local/bin/sim g1_mesa
+Icon=applications-science
+Terminal=false
