@@ -1017,7 +1017,7 @@ const neighbours = [];
 });
 // initial poses + grounding
 Object.values(actors).flat().concat(neighbours).forEach(r => { if (r.key.startsWith('g1')) g1Rest(r); else go2Stand(r); r.h0 = r.ground(); });
-// caída como un tablón: gira sobre los pies (no sobre la pelvis) para que el cuerpo acabe en el suelo, no flotando ni hundido
+// fall like a plank: pivot on the feet (not the pelvis) so the body ends up on the floor, neither floating nor sunk
 function tip(r, a){ r.body.rotation.set(-a, 0, 0); r.body.position.set(0, r.h0*Math.sin(a), r.h0*Math.cos(a)); }
 
 /* ---------------- scenes: camera + behaviour ---------------- */

@@ -1,18 +1,18 @@
 <?xml version="1.0" ?>
 <!--
-  Unitree Go2 en un recinto de 16 x 16 m con dos salas, conos, cajas y columnas.
+  Unitree Go2 in a 16 x 16 m enclosure with two rooms, cones, boxes and columns.
 
-  Modelo generado con tools/build_unitree_models.py; necesita
-  GZ_SIM_RESOURCE_PATH=<este directorio>/models.
+  Model generated with tools/build_unitree_models.py; it needs
+  GZ_SIM_RESOURCE_PATH=<this directory>/models.
 
-  Desplazar el robot (velocidades en el marco del cuerpo):
+  Move the robot (velocities in the body frame):
     gz topic -t /go2/cmd_vel -m gz.msgs.Twist -p "linear: {x: 0.5}, angular: {z: 0.3}"
 
-  cmd_vel no es locomoción: VelocityControl mueve el cuerpo entero mientras las
-  patas mantienen la postura de pie. Para programar una marcha propia hay que
-  mandar las 12 articulaciones (/go2/cmd/<articulación>) y no usar cmd_vel.
+  cmd_vel is not locomotion: VelocityControl moves the whole body while the
+  legs hold the standing pose. To program your own gait you have to
+  command the 12 joints (/go2/cmd/<joint>) and not use cmd_vel.
 
-  Sensores: /go2/imu, /go2/lidar (+ /go2/lidar/points), /go2/camara, /go2/odom
+  Sensors: /go2/imu, /go2/lidar (+ /go2/lidar/points), /go2/camara, /go2/odom
 -->
 <sdf version="1.11">
   <world name="go2_parque">
@@ -60,14 +60,14 @@
       </link>
     </model>
 
-    <!-- Go2 de pie en la sala de salida, mirando a +X (hacia los conos) -->
+    <!-- Go2 standing in the start room, facing +X (towards the cones) -->
     <include>
       <uri>model://go2</uri>
       <name>go2</name>
       <pose>-6 0 0.34 0 0 0</pose>
     </include>
 
-    <!-- Muros exteriores: recinto de 16 x 16 m -->
+    <!-- Outer walls: 16 x 16 m enclosure -->
     <model name="muro_norte">
       <static>true</static>
       <pose>0 8 0.5 0 0 0</pose>
@@ -112,7 +112,7 @@
         </visual>
       </link>
     </model>
-    <!-- Tabique en x = 2 con una puerta de 2 m entre y = -1 y y = 1 -->
+    <!-- Partition wall at x = 2 with a 2 m doorway between y = -1 and y = 1 -->
     <model name="tabique_sur">
       <static>true</static>
       <pose>2 -4.5 0.5 0 0 0</pose>
@@ -135,7 +135,7 @@
         </visual>
       </link>
     </model>
-    <!-- Sala de salida: slalom de conos delante del robot -->
+    <!-- Start room: cone slalom in front of the robot -->
     <model name="cono_1">
       <static>true</static>
       <pose>-3.5 0.6 0.25 0 0 0</pose>
@@ -213,7 +213,7 @@
         </visual>
       </link>
     </model>
-    <!-- Segunda sala: columnas y palés -->
+    <!-- Second room: columns and pallets -->
     <model name="columna_1">
       <static>true</static>
       <pose>4 3 1.25 0 0 0</pose>

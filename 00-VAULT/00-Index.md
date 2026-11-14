@@ -1,44 +1,44 @@
 ---
-title: Índice
+title: Index
 type: moc
 tags: [seminar, cloud, robotics, simulation, index]
 ---
 
-# 00 Índice: servicios cloud para simuladores robóticos
+# 00 Index: cloud services for robot simulators
 
-Punto de entrada de la documentación del seminario. Recorre las opciones para simular robots sin tener (o sin tener que usar) el hardware en tu propio portátil: desde servicios en la nube ya hechos hasta montar tu propio servidor con GPU.
+Entry point to the seminar documentation. It walks through the options for simulating robots without having (or without having to use) the hardware on your own laptop: from ready-made cloud services to setting up your own GPU server.
 
 ---
 
-## 00 Entornos online (sin NVIDIA)
+## 00 Online workspaces (no NVIDIA)
 
-Servicios gestionados a los que se accede desde el navegador.
+Managed services accessed from the browser.
 
-- [[01-The-Construct|The Construct]]: entorno online de desarrollo y laboratorios ROS / ROS 2 con Gazebo.
-- [[02-Webots-cloud|Webots cloud]]: publicación de simulaciones Webots interactivas y demos reproducibles en la web.
+- [[01-The-Construct|The Construct]]: online development environment and ROS / ROS 2 labs with Gazebo.
+- [[02-Webots-cloud|Webots cloud]]: publishing interactive Webots simulations and reproducible demos on the web.
 
-## 01 Cloud autodesplegado (sin NVIDIA)
+## 01 Self-deployed cloud (no NVIDIA)
 
-Software de simulación y aprendizaje que se despliega uno mismo en máquinas cloud.
+Simulation and learning software that you deploy yourself on cloud machines.
 
-- [[01-Unity-Simulation-Pro-and-ML-Agents|Unity Simulation Pro y ML-Agents]]: simulación robótica en Unity y entrenamiento de agentes.
-- [[02-MuJoCo-Playground|MuJoCo Playground]]: motor de física MuJoCo y su ecosistema de aprendizaje de robots.
-- [[03-Genesis-World|Genesis World]]: framework de simulación para *physical AI*, configurable para aceleradores cloud.
+- [[01-Unity-Simulation-Pro-and-ML-Agents|Unity Simulation Pro and ML-Agents]]: robot simulation in Unity and agent training.
+- [[02-MuJoCo-Playground|MuJoCo Playground]]: the MuJoCo physics engine and its robot learning ecosystem.
+- [[03-Genesis-World|Genesis World]]: simulation framework for *physical AI*, configurable for cloud accelerators.
 
-## 02 Infraestructura cloud de NVIDIA
+## 02 NVIDIA cloud infrastructure
 
-Herramientas de NVIDIA para cada paso: conseguir GPU, simular y escalar.
+NVIDIA tools for each step: getting a GPU, simulating and scaling.
 
-- [[NVIDIA Cloud & 3D Infrastructure]]: mapa general de la infraestructura y cómo encajan sus piezas.
-  - [[NVIDIA Brev]]: instancias GPU bajo demanda y *Launchables*.
-  - [[NVIDIA Omniverse Cloud]]: aplicaciones 3D y de simulación alojadas, OpenUSD y streaming.
-  - [[NVIDIA OSMO]]: orquestación de pipelines de *physical AI* a escala.
+- [[NVIDIA Cloud & 3D Infrastructure]]: overall map of the infrastructure and how its pieces fit together.
+  - [[NVIDIA Brev]]: on-demand GPU instances and *Launchables*.
+  - [[NVIDIA Omniverse Cloud]]: hosted 3D and simulation applications, OpenUSD and streaming.
+  - [[NVIDIA OSMO]]: orchestration of *physical AI* pipelines at scale.
 
-## 03 Demo: tu propia nube de simulación
+## 03 Demo: your own simulation cloud
 
-Ofrecer la GPU de un PC propio para que otras personas simulen desde su navegador.
+Offering the GPU of your own PC so other people can simulate from their browser.
 
-- [[01-Selkies|Selkies]]: la opción que usamos en la demo. Escritorio con GPU en el navegador, Gazebo y ROS 2 por Zenoh.
-- [[02-Kasm-Workspaces|Kasm Workspaces]]: la alternativa multiusuario completa, y por qué no la usamos.
+- [[01-Selkies|Selkies]]: the option we use in the demo. GPU desktop in the browser, Gazebo and ROS 2 over Zenoh.
+- [[02-Kasm-Workspaces|Kasm Workspaces]]: the full multi-user alternative, and why we did not use it.
 
-El código para reproducir la demo está fuera de esta vault, en la carpeta `99-CODE-DEMO/` del repositorio. Su `README.md` tiene los pasos.
+The code to reproduce the demo lives outside this vault, in the repository's `99-CODE-DEMO/` folder. Its `README.md` has the steps.

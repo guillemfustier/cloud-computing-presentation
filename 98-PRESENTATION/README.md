@@ -1,23 +1,23 @@
-# Presentación del seminario
+# Seminar presentation
 
-`PRESENTACION.html` es la presentación completa en un solo archivo: se abre con doble clic, sin conexión.
-Navegación: ← → para pasar diapositivas, F pantalla completa, Q calidad.
+`PRESENTACION.html` is the complete presentation in a single file: open it with a double click, no connection needed.
+Navigation: ← → to change slides, F for full screen, Q for quality.
 
-## Reparto
+## Speakers
 
-| Ponente | Diapositivas |
+| Speaker | Slides |
 |---|---|
-| Lucía | 1–7 · título, ruta e infraestructura cloud de NVIDIA |
+| Lucía | 1–7 · title, roadmap and NVIDIA cloud infrastructure |
 | Matteo | 8–14 · Isaac Sim, Isaac Lab, Launchable, Cosmos |
-| Miquel | 15–18 y 20 · alternativas y conclusiones |
-| Guillem y Jorge | 19 y 21 · demo en vivo y preguntas |
+| Miquel | 15–18 and 20 · alternatives and conclusions |
+| Guillem and Jorge | 19 and 21 · live demo and questions |
 
-## Editar
+## Editing
 
-Se edita solo `src/template.html` y se regenera con:
+Only `src/template.html` is edited, and the presentation is regenerated with:
 
 ```bash
 python3 src/build.py
 ```
 
-`PRESENTACION.html` es generado: no editarlo a mano. Las capturas de `src/img/` (documentación de NVIDIA Isaac Sim e Isaac Lab) se embeben al compilar.
+`PRESENTACION.html` is generated: do not edit it by hand. The screenshots in `src/img/` (from the NVIDIA Isaac Sim and Isaac Lab documentation) are embedded at build time.

@@ -1,16 +1,16 @@
 <?xml version="1.0" ?>
 <!--
-  Humanoide Unitree G1 delante de una mesa con una manzana y una botella.
+  Unitree G1 humanoid in front of a table with an apple and a bottle.
 
-  El G1 va anclado por la pelvis (no hay controlador de equilibrio), así que el
-  mundo sirve para manipulación con los brazos, no para andar.
-  Modelo generado con tools/build_unitree_models.py; necesita
-  GZ_SIM_RESOURCE_PATH=<este directorio>/models.
+  The G1 is anchored by the pelvis (there is no balance controller), so the
+  world is meant for manipulation with the arms, not for walking.
+  Model generated with tools/build_unitree_models.py; it needs
+  GZ_SIM_RESOURCE_PATH=<this directory>/models.
 
-  Mover una articulación (radianes):
+  Move a joint (radians):
     gz topic -t /g1/cmd/left_shoulder_pitch_joint -m gz.msgs.Double -p "data: -0.8"
 
-  Estado de las articulaciones y cámara de la cabeza:
+  Joint states and head camera:
     gz topic -e -t /g1/joint_states
     gz topic -e -t /g1/camara
 -->
@@ -58,14 +58,14 @@
       </link>
     </model>
 
-    <!-- Pelvis a la altura de pie del G1 (+3 cm para que los pies no rocen), mirando a +X (hacia la mesa) -->
+    <!-- Pelvis at the G1's standing height (+3 cm so the feet do not scrape), facing +X (towards the table) -->
     <include>
       <uri>model://g1</uri>
       <name>g1</name>
       <pose>0 0 0.82 0 0 0</pose>
     </include>
 
-    <!-- Mesa: tablero de 0.6 x 1.0 m a 0.70 m de altura -->
+    <!-- Table: 0.6 x 1.0 m top at 0.70 m height -->
     <model name="mesa">
       <static>true</static>
       <pose>0.55 0 0 0 0 0</pose>
@@ -105,7 +105,7 @@
       </link>
     </model>
 
-    <!-- Manzana: esfera de 8 cm, 150 g, a la izquierda del robot -->
+    <!-- Apple: 8 cm sphere, 150 g, to the left of the robot -->
     <model name="manzana">
       <pose>0.42 0.18 0.74 0 0 0</pose>
       <link name="link">
@@ -138,7 +138,7 @@
       </link>
     </model>
 
-    <!-- Botella: cilindro de 7 cm de diámetro y 22 cm de alto, 300 g, a la derecha -->
+    <!-- Bottle: cylinder 7 cm in diameter and 22 cm tall, 300 g, to the right -->
     <model name="botella">
       <pose>0.42 -0.18 0.81 0 0 0</pose>
       <link name="link">

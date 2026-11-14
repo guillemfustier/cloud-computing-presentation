@@ -1,65 +1,65 @@
 # 02 Kasm Workspaces
 
-**Categoría:** plataforma autoalojada de escritorios y aplicaciones en contenedores, servidos al navegador, con portal multiusuario. **Relevancia:** alta como solución "completa" para ofrecer tu GPU a varias personas; **descartada para nuestra demo** por lo que exige instalar en el servidor.
+**Category:** self-hosted platform for containerised desktops and applications, served to the browser, with a multi-user portal. **Relevance:** high as a "complete" solution for offering your GPU to several people; **ruled out for our demo** because of what it requires installing on the server.
 
-Relacionado: [[01-Selkies]] (la opción que usamos)
+Related: [[01-Selkies]] (the option we use)
 
 ---
 
-## Qué es
+## What it is
 
-[Kasm Workspaces](https://kasmweb.com) hace como producto acabado lo que con Selkies hacemos a mano: cada usuario inicia sesión en un portal web, elige un "workspace" de un catálogo (un escritorio Ubuntu, Firefox, Blender o una imagen propia) y Kasm le lanza **un contenedor Docker solo para él**, que ve en el navegador. Al cerrar la sesión, el contenedor se destruye.
+[Kasm Workspaces](https://kasmweb.com) does as a finished product what we do by hand with Selkies: each user logs in to a web portal, picks a "workspace" from a catalogue (an Ubuntu desktop, Firefox, Blender or a custom image) and Kasm launches **a Docker container just for them**, which they see in the browser. When the session is closed, the container is destroyed.
 
 ```
-Navegador ── HTTPS :443 ──> Kasm (en el servidor)
-  ├─ Portal web: login, usuarios, catálogo
-  ├─ Manager / API: decide qué lanzar y dónde
-  └─ Agent: lanza un contenedor por sesión
-       └─ Escritorio Linux + KasmVNC
-            └─ GPU NVIDIA del servidor
+Browser ── HTTPS :443 ──> Kasm (on the server)
+  ├─ Web portal: login, users, catalogue
+  ├─ Manager / API: decides what to launch and where
+  └─ Agent: launches one container per session
+       └─ Linux desktop + KasmVNC
+            └─ Server's NVIDIA GPU
 ```
 
-Lo que aporta frente a Selkies:
+What it adds compared to Selkies:
 
-- **Multiusuario de verdad**: cuentas, grupos, permisos y catálogo de imágenes desde una web de administración.
-- Sesiones **bajo demanda**: el usuario las lanza y las cierra él; hay caducidad automática.
-- Límites de CPU, RAM y GPU **por imagen**, almacenamiento persistente opcional, registros de imágenes.
+- **Real multi-user support**: accounts, groups, permissions and an image catalogue from an admin web UI.
+- **On-demand** sessions: users launch and close them themselves; sessions expire automatically.
+- CPU, RAM and GPU limits **per image**, optional persistent storage, image registries.
 
-## Cómo usa la GPU
+## How it uses the GPU
 
-Según su [documentación de GPU](https://docs.kasm.com/docs/tutorials/install/gpu):
+According to its [GPU documentation](https://docs.kasm.com/docs/tutorials/install/gpu):
 
-- Requiere GPU NVIDIA con CUDA, driver reciente y NVIDIA Container Toolkit en cada servidor (Agent).
-- Cada imagen declara cuántas GPU necesita. Por defecto **1 GPU física = 1 sesión**, pero el administrador puede declarar que el Agent tiene, por ejemplo, 4 GPU "virtuales" para que la compartan 4 sesiones.
-- OpenGL acelerado con **VirtualGL (EGL)** o Vulkan con Zink, la misma técnica de fondo que Selkies y que la opción hecha a mano de Jorge.
-- La propia Kasm advierte que compartir una GPU entre varios usuarios "no está bien establecido" en cuanto a seguridad; la única forma segura es **MIG**, que no tienen las GPU de consumo como la RTX 3060.
+- It requires an NVIDIA GPU with CUDA, a recent driver and the NVIDIA Container Toolkit on every server (Agent).
+- Each image declares how many GPUs it needs. By default **1 physical GPU = 1 session**, but the administrator can declare that the Agent has, for example, 4 "virtual" GPUs so that 4 sessions share it.
+- Accelerated OpenGL with **VirtualGL (EGL)** or Vulkan with Zink, the same underlying technique as Selkies and as Jorge's hand-built option.
+- Kasm itself warns that sharing a GPU between several users is "not well established" security-wise; the only safe way is **MIG**, which consumer GPUs such as the RTX 3060 do not have.
 
-## Licencia
+## License
 
-La **Community Edition** es gratuita para pruebas, uso no comercial y organizaciones sin ánimo de lucro, con un **límite de 5 sesiones simultáneas** ([licencia](https://docs.kasm.com/docs/license/index.html)). Las ediciones de pago se licencian por usuario o por sesión concurrente.
+The **Community Edition** is free for testing, non-commercial use and non-profit organisations, with a **limit of 5 concurrent sessions** ([license](https://docs.kasm.com/docs/license/index.html)). Paid editions are licensed per user or per concurrent session.
 
-## ROS 2 y Gazebo en Kasm
+## ROS 2 and Gazebo on Kasm
 
-No hay imagen oficial con ROS 2. Habría que construir una propia partiendo de la imagen base de Kasm con CUDA, añadir ROS 2 Jazzy y Gazebo (como hicimos con Selkies) y registrarla en el panel. Además, Kasm solo expone el escritorio web: para conectar nodos ROS 2 desde fuera por Zenoh habría que abrir un puerto extra con su configuración avanzada de Docker, o ejecutar los nodos dentro del escritorio.
+There is no official image with ROS 2. You would have to build your own starting from Kasm's CUDA base image, add ROS 2 Jazzy and Gazebo (as we did with Selkies) and register it in the panel. In addition, Kasm only exposes the web desktop: to connect ROS 2 nodes from outside over Zenoh you would have to open an extra port through its advanced Docker configuration, or run the nodes inside the desktop.
 
-## Por qué no la usamos
+## Why we did not use it
 
-| Requisito de Kasm                                                      | Situación en el PC servidor                                                                                                      |
+| Kasm requirement                                                       | Situation on the server PC                                                                                              |
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| 50–75 GB de disco libres (según versión)                               | 37 GB libres                                                                                                            |
-| Instalador con **sudo** que trae **su propio Docker y Docker Compose** | La máquina ya tiene Docker 29 con otros proyectos en marcha; la documentación avisa de incompatibilidades con Docker 29 |
-| Configura **swap** en el sistema                                       | Cambio en el host que no queríamos hacer                                                                                |
-| Puerto 443                                                             | Libre, pero es un cambio más                                                                                            |
+| 50–75 GB of free disk (depending on version)                           | 37 GB free                                                                                                              |
+| Installer with **sudo** that brings **its own Docker and Docker Compose** | The machine already has Docker 29 with other projects running; the documentation warns of incompatibilities with Docker 29 |
+| Configures **swap** on the system                                      | A change to the host we did not want to make                                                                            |
+| Port 443                                                               | Free, but it is one more change                                                                                         |
 
-Queríamos que **todo quedara en contenedores, sin tocar el sistema** de una máquina compartida. Kasm es una plataforma que se instala en el host; Selkies es un contenedor que se lanza y se borra. Para una demo con 1–2 usuarios, Selkies cubre lo necesario con mucho menos coste.
+We wanted **everything to stay in containers, without touching the system** of a shared machine. Kasm is a platform installed on the host; Selkies is a container you launch and delete. For a demo with 1–2 users, Selkies covers what is needed at a much lower cost.
 
-**Cuándo sí elegir Kasm**: un servidor dedicado, con varios usuarios habituales que deben lanzar sus sesiones sin depender de un administrador.
+**When to choose Kasm**: a dedicated server, with several regular users who need to launch their sessions without depending on an administrator.
 
-## Fuentes
+## Sources
 
-- [Kasm: aceleración por GPU](https://docs.kasm.com/docs/tutorials/install/gpu)
-- [Kasm: licencia y Community Edition](https://docs.kasm.com/docs/license/index.html)
-- [Kasm: comparativa de ediciones](https://trust.kasmweb.com/community-edition)
-- [Kasm: requisitos del sistema](https://docs.kasm.com/docs/install/system_requirements/index.html)
-- [Kasm: instalación en un solo servidor](https://docs.kasm.com/docs/tutorials/install/single-server-install/index.html)
-- [Kasm: construir imágenes propias](https://docs.kasm.com/docs/how-to/workspaces-sessions/container-workspace/customization/building-images/index.html)
+- [Kasm: GPU acceleration](https://docs.kasm.com/docs/tutorials/install/gpu)
+- [Kasm: license and Community Edition](https://docs.kasm.com/docs/license/index.html)
+- [Kasm: edition comparison](https://trust.kasmweb.com/community-edition)
+- [Kasm: system requirements](https://docs.kasm.com/docs/install/system_requirements/index.html)
+- [Kasm: single-server installation](https://docs.kasm.com/docs/tutorials/install/single-server-install/index.html)
+- [Kasm: building custom images](https://docs.kasm.com/docs/how-to/workspaces-sessions/container-workspace/customization/building-images/index.html)

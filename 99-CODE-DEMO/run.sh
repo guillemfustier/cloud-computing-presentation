@@ -1,15 +1,15 @@
 #!/bin/bash
-# Lanza (o para) una sesión Selkies para un usuario. Cada usuario es un contenedor con sus propios puertos.
+# Starts (or stops) a Selkies session for one user. Each user is a container with its own ports.
 #
-#   ./run.sh <n> [contraseña]     # lanza la sesión n (0, 1, 2...)
-#                                 # contraseña por defecto: sjk005-seminar-user-<n>
-#   ./run.sh stop <n>             # la para
+#   ./run.sh <n> [password]       # starts session n (0, 1, 2...)
+#                                 # default password: sjk005-seminar-user-<n>
+#   ./run.sh stop <n>             # stops it
 #
-# Puertos de la sesión n:
+# Ports of session n:
 #   web (HTTPS)       8080+n
 #   Zenoh (ROS 2)     7447+n
 #   TURN (WebRTC)     3478+n  tcp/udp
-#   relay TURN        65000+20n .. 65019+20n  udp
+#   TURN relay        65000+20n .. 65019+20n  udp
 set -e
 IMAGE=selkies-ros
 
@@ -18,12 +18,12 @@ if [ "$1" = "stop" ]; then
   exit 0
 fi
 
-N="${1:?Uso: ./run.sh <n> [contraseña]}"
+N="${1:?Usage: ./run.sh <n> [password]}"
 PASS="${2:-sjk005-seminar-user-$N}"
 HOST_IP="${HOST_IP:-$(ip -4 route get 1.1.1.1 | awk '{for(i=1;i<NF;i++) if($i=="src") print $(i+1)}')}"
 
 WEB=$((8080 + N)); ZENOH=$((7447 + N)); TURN=$((3478 + N))
-# Cada conexión WebRTC gasta 2 puertos de relay y las fallidas tardan en liberarse: dejar margen
+# Each WebRTC connection uses 2 relay ports and failed ones take a while to be released: leave headroom
 RELAY_MIN=$((65000 + 20 * N)); RELAY_MAX=$((RELAY_MIN + 19))
 
 docker run -d --rm --name "selkies-$N" \
@@ -39,8 +39,8 @@ docker run -d --rm --name "selkies-$N" \
   -p "$RELAY_MIN-$RELAY_MAX:$RELAY_MIN-$RELAY_MAX/udp" \
   "$IMAGE" >/dev/null
 
-echo "Sesión $N lanzada (contenedor selkies-$N)"
-echo "  Escritorio:  https://$HOST_IP:$WEB"
-echo "  Usuario:     ubuntu"
-echo "  Contraseña:  $PASS"
+echo "Session $N started (container selkies-$N)"
+echo "  Desktop:     https://$HOST_IP:$WEB"
+echo "  User:        ubuntu"
+echo "  Password:    $PASS"
 echo "  ROS 2/Zenoh: tcp/$HOST_IP:$ZENOH"

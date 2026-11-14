@@ -1,4 +1,4 @@
-# Bridge Gazebo <-> ROS 2 para el mundo g1_mesa
+# Gazebo <-> ROS 2 bridge for the g1_mesa world
 - ros_topic_name: "/clock"
   gz_topic_name: "/clock"
   ros_type_name: "rosgraph_msgs/msg/Clock"
@@ -23,7 +23,7 @@
   gz_type_name: "gz.msgs.CameraInfo"
   direction: GZ_TO_ROS
 
-# Consigna de posición (rad) de cada articulación: std_msgs/Float64
+# Position setpoint (rad) for each joint: std_msgs/Float64
 
 - ros_topic_name: "/g1/cmd/left_hip_pitch_joint"
   gz_topic_name: "/g1/cmd/left_hip_pitch_joint"

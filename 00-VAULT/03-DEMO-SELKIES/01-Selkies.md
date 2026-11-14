@@ -1,120 +1,120 @@
-# 01 Selkies: compartir tu GPU para simular robots
+# 01 Selkies: sharing your GPU to simulate robots
 
-Este documento explica la demo que montamos: un PC con GPU NVIDIA ejecuta Gazebo. En nuestro caso es **eloi-ubuntu**, un PC personal con una RTX 3060 de 12 GB; en el resto del documento lo llamamos **el PC servidor**. Otra persona lo ve y lo maneja desde su navegador, y conecta sus nodos ROS 2 desde su portátil, **aunque su portátil no tenga GPU NVIDIA**.
+This document explains the demo we built: a PC with an NVIDIA GPU runs Gazebo. In our case it is **eloi-ubuntu**, a personal PC with a 12 GB RTX 3060; in the rest of the document we call it **the server PC**. Another person sees and controls it from their browser, and connects their ROS 2 nodes from their laptop, **even if their laptop has no NVIDIA GPU**.
 
-Alternativas consideradas: [[02-Kasm-Workspaces|Kasm Workspaces]] (descartada, ver su nota).
+Alternatives considered: [[02-Kasm-Workspaces|Kasm Workspaces]] (ruled out, see its note).
 
 ---
 
-## 1. Qué es Selkies
+## 1. What Selkies is
 
-[Selkies](https://github.com/selkies-project) es un proyecto de código abierto (licencia MPL-2.0) que **transmite un escritorio Linux al navegador por WebRTC**, la misma tecnología que usan las videollamadas. Nació para clústeres académicos y de Kubernetes, como "escritorio remoto con GPU para HPC".
+[Selkies](https://github.com/selkies-project) is an open-source project (MPL-2.0 license) that **streams a Linux desktop to the browser over WebRTC**, the same technology used by video calls. It was born for academic and Kubernetes clusters, as a "GPU remote desktop for HPC".
 
-Su imagen `nvidia-egl-desktop` es un contenedor que ya trae todo lo necesario:
+Its `nvidia-egl-desktop` image is a container that already ships with everything needed:
 
-| Pieza (ya incluida en la imagen) | Para qué sirve |
+| Component (already in the image) | What it is for |
 |---|---|
-| Escritorio KDE Plasma sobre un servidor X virtual | La pantalla donde se dibujan las aplicaciones |
-| **VirtualGL** (`vglrun -d egl`) | Hace que el OpenGL de las aplicaciones (Gazebo, RViz) se renderice en la **GPU NVIDIA** en lugar de por software |
-| GStreamer + codificador **NVENC** (`nvh264enc`) | Comprime la pantalla en vídeo H.264 en la propia GPU |
-| `selkies-gstreamer` + nginx | Página web, login y envío del vídeo por WebRTC; teclado y ratón de vuelta |
-| Servidor **TURN** (coturn) | Relay del vídeo cuando el navegador y el contenedor no se ven directamente |
+| KDE Plasma desktop on a virtual X server | The screen where applications are drawn |
+| **VirtualGL** (`vglrun -d egl`) | Makes the applications' OpenGL (Gazebo, RViz) render on the **NVIDIA GPU** instead of in software |
+| GStreamer + **NVENC** encoder (`nvh264enc`) | Compresses the screen into H.264 video on the GPU itself |
+| `selkies-gstreamer` + nginx | Web page, login and sending the video over WebRTC; keyboard and mouse back |
+| **TURN** server (coturn) | Relays the video when the browser and the container cannot see each other directly |
 
-Para quien se conecta, es abrir una URL y tener un escritorio Linux con GPU en una pestaña. **No instala nada** para ver la simulación.
+For whoever connects, it is just opening a URL and getting a Linux desktop with a GPU in a tab. **Nothing to install** to view the simulation.
 
-### Qué versión usamos y por qué
+### Which version we use and why
 
-- La generación actual de Selkies (`selkies-egl-desktop`) solo existe para **Ubuntu 26.04**.
-- ROS 2 **Jazzy** (el que tenemos en el portátil) solo tiene paquetes para **Ubuntu 24.04**. Para hablar por Zenoh, servidor y cliente deben usar la misma distribución de ROS.
-- Por eso partimos de la generación anterior, **`ghcr.io/selkies-project/nvidia-egl-desktop:24.04`**, que sigue publicada.
+- The current Selkies generation (`selkies-egl-desktop`) only exists for **Ubuntu 26.04**.
+- ROS 2 **Jazzy** (the one on our laptop) only has packages for **Ubuntu 24.04**. To talk over Zenoh, server and client must use the same ROS distribution.
+- That is why we start from the previous generation, **`ghcr.io/selkies-project/nvidia-egl-desktop:24.04`**, which is still published.
 
-## 2. Cómo lo adaptamos a nuestro uso
+## 2. How we adapted it to our use case
 
-No programamos ninguna plataforma. Solo añadimos ROS 2 a la imagen de Selkies y escribimos un script de lanzamiento. Todo está en la carpeta [`99-CODE-DEMO/`](../../99-CODE-DEMO/README.md) del repositorio, separada de esta documentación:
+We did not program any platform. We only added ROS 2 to the Selkies image and wrote a launch script. Everything is in the repository's [`99-CODE-DEMO/`](../../99-CODE-DEMO/README.md) folder, separate from this documentation:
 
-| Archivo | Qué hace |
+| File | What it does |
 |---|---|
-| [`Dockerfile`](../../99-CODE-DEMO/Dockerfile) | Parte de Selkies 24.04 y añade ROS 2 Jazzy (`ros-base`), Gazebo Harmonic + `ros_gz_bridge`, `rmw_zenoh_cpp`, RViz2 y `teleop_twist_keyboard` |
-| [`zenohd.conf`](../../99-CODE-DEMO/zenohd.conf) | Programa de supervisord: arranca el **router Zenoh** al iniciar el contenedor |
-| [`sim.sh`](../../99-CODE-DEMO/sim.sh) | Comando `sim <mundo>`: lanza Gazebo con el mundo y el bridge Gazebo ↔ ROS 2 |
-| [`worlds/`](../../99-CODE-DEMO/worlds) | Un directorio por mundo con su `bridge.yaml`; el `world.sdf` se copia de los ejemplos de Gazebo al construir, salvo en `g1_mesa` y `go2_parque`, que traen el suyo y los modelos Unitree en `models/` |
-| [`desktop/`](../../99-CODE-DEMO/desktop) | Accesos directos en el escritorio: *Gazebo: diff_drive*, *sensors_demo*, *shapes* y *RViz2* |
-| [`run.sh`](../../99-CODE-DEMO/run.sh) | Lanza o para la sesión `n`, cada una con sus propios puertos y contraseña |
+| [`Dockerfile`](../../99-CODE-DEMO/Dockerfile) | Starts from Selkies 24.04 and adds ROS 2 Jazzy (`ros-base`), Gazebo Harmonic + `ros_gz_bridge`, `rmw_zenoh_cpp`, RViz2 and `teleop_twist_keyboard` |
+| [`zenohd.conf`](../../99-CODE-DEMO/zenohd.conf) | supervisord program: starts the **Zenoh router** when the container starts |
+| [`sim.sh`](../../99-CODE-DEMO/sim.sh) | `sim <world>` command: launches Gazebo with the world and the Gazebo ↔ ROS 2 bridge |
+| [`worlds/`](../../99-CODE-DEMO/worlds) | One directory per world with its `bridge.yaml`; the `world.sdf` is copied from the Gazebo examples at build time, except for `g1_mesa` and `go2_parque`, which bring their own plus the Unitree models in `models/` |
+| [`desktop/`](../../99-CODE-DEMO/desktop) | Desktop shortcuts: *Gazebo: diff_drive*, *sensors_demo*, *shapes* and *RViz2* |
+| [`run.sh`](../../99-CODE-DEMO/run.sh) | Starts or stops session `n`, each with its own ports and password |
 
 ```
 ┌────────────────────────────────────────┐
-│ Portátil del usuario (sin NVIDIA)      │
-│   - Navegador                          │
-│   - Router Zenoh + nodos ROS 2         │
+│ User's laptop (no NVIDIA)              │
+│   - Browser                            │
+│   - Zenoh router + ROS 2 nodes         │
 └────────────────────────────────────────┘
-        │  HTTPS :8080   escritorio
-        │  TURN  :3478   vídeo WebRTC
+        │  HTTPS :8080   desktop
+        │  TURN  :3478   WebRTC video
         │  TCP   :7447   ROS 2 (Zenoh)
         ▼
 ┌────────────────────────────────────────┐
-│ PC servidor (RTX 3060)                 │
-│   Contenedor selkies-0 (Ubuntu 24.04)  │
-│   ├─ Escritorio KDE + Selkies          │
-│   ├─ Gazebo, renderizado en la GPU     │
+│ Server PC (RTX 3060)                   │
+│   Container selkies-0 (Ubuntu 24.04)   │
+│   ├─ KDE desktop + Selkies             │
+│   ├─ Gazebo, rendered on the GPU       │
 │   ├─ ros_gz_bridge (Gazebo - ROS 2)    │
-│   └─ Router Zenoh                      │
+│   └─ Zenoh router                      │
 └────────────────────────────────────────┘
 ```
 
-### Por qué Zenoh y no el DDS por defecto
+### Why Zenoh and not the default DDS
 
-ROS 2 usa DDS por defecto, que descubre los nodos por **multicast**. Las WiFi de universidades y las VPN (Tailscale incluida) suelen bloquearlo o no reenviarlo. Con **Zenoh** (`rmw_zenoh_cpp`, un RMW oficial de ROS 2) basta **una conexión TCP a un puerto**. Además, cada contenedor tiene su propio router, así que cada usuario solo ve sus topics, sin repartir `ROS_DOMAIN_ID`.
+ROS 2 uses DDS by default, which discovers nodes via **multicast**. University WiFi networks and VPNs (Tailscale included) usually block it or do not forward it. With **Zenoh** (`rmw_zenoh_cpp`, an official ROS 2 RMW) **a single TCP connection to one port** is enough. In addition, each container has its own router, so each user only sees their own topics, without handing out `ROS_DOMAIN_ID`s.
 
-### Mundos incluidos
+### Included worlds
 
-| Mundo | Topics ROS 2 |
+| World | ROS 2 topics |
 |---|---|
-| `diff_drive` | `/cmd_vel` (entrada, mueve el coche azul), `/odom`, `/clock` |
+| `diff_drive` | `/cmd_vel` (input, moves the blue car), `/odom`, `/clock` |
 | `sensors_demo` | `/camera`, `/scan`, `/clock` |
 | `shapes` | `/clock` |
-| `g1_mesa` | Humanoide Unitree G1 (29 articulaciones) anclado ante una mesa: `/g1/cmd/<articulación>` (entrada), `/g1/joint_states`, `/g1/camara`, `/clock` |
-| `go2_parque` | Cuadrúpedo Unitree Go2 en un parque de 16 × 16 m: `/go2/cmd_vel` (entrada, desliza el cuerpo sin caminar), `/go2/cmd/<articulación>`, `/go2/odom`, `/go2/imu`, `/go2/scan`, `/go2/points`, `/go2/camara`, `/clock` |
+| `g1_mesa` | Unitree G1 humanoid (29 joints) anchored in front of a table: `/g1/cmd/<joint>` (input), `/g1/joint_states`, `/g1/camara`, `/clock` |
+| `go2_parque` | Unitree Go2 quadruped in a 16 × 16 m park: `/go2/cmd_vel` (input, slides the body without walking), `/go2/cmd/<joint>`, `/go2/odom`, `/go2/imu`, `/go2/scan`, `/go2/points`, `/go2/camara`, `/clock` |
 
-Para añadir un mundo: crear `worlds/<nombre>/world.sdf` y `bridge.yaml` (tabla de tipos en el README de `ros_gz_bridge`) y reconstruir la imagen.
+To add a world: create `worlds/<name>/world.sdf` and `bridge.yaml` (type table in the `ros_gz_bridge` README) and rebuild the image.
 
-## 3. Requisitos del PC servidor
+## 3. Server PC requirements
 
-- Ubuntu con GPU NVIDIA y driver propietario (probado con el driver 580).
-- **Docker** y **NVIDIA Container Toolkit** (`docker info` debe listar el runtime `nvidia`).
-- Unos **16 GB de disco** para la imagen (descarga de unos 4 GB).
-- Nada más: ni ROS, ni Python, ni paquetes en el host. Todo vive en el contenedor.
+- Ubuntu with an NVIDIA GPU and the proprietary driver (tested with driver 580).
+- **Docker** and **NVIDIA Container Toolkit** (`docker info` must list the `nvidia` runtime).
+- About **16 GB of disk** for the image (a download of about 4 GB).
+- Nothing else: no ROS, no Python, no packages on the host. Everything lives in the container.
 
-Construir la imagen (una vez):
+Build the image (once):
 
 ```bash
-cd 99-CODE-DEMO     # dentro del repositorio clonado
+cd 99-CODE-DEMO     # inside the cloned repository
 docker build -t selkies-ros .
 ```
 
-## 4. Una persona
+## 4. One person
 
 ```bash
 ./run.sh 0
 ```
 
-Salida:
+Output:
 
 ```
-Sesión 0 lanzada (contenedor selkies-0)
-  Escritorio:  https://192.168.10.202:8080
-  Usuario:     ubuntu
-  Contraseña:  sjk005-seminar-user-0
+Session 0 started (container selkies-0)
+  Desktop:     https://192.168.10.202:8080
+  User:        ubuntu
+  Password:    sjk005-seminar-user-0
   ROS 2/Zenoh: tcp/192.168.10.202:7447
 ```
 
-Qué hace `run.sh` por debajo:
+What `run.sh` does under the hood:
 
 ```bash
 docker run -d --rm --name selkies-0 \
   --gpus 1 --shm-size=2g --memory 8g --cpus 4 \
   -e PASSWD=sjk005-seminar-user-0 -e SELKIES_ENABLE_HTTPS=true \
-  -e SELKIES_TURN_HOST=<ip-servidor> \
-  -e TURN_EXTERNAL_IP=<ip-servidor> \
+  -e SELKIES_TURN_HOST=<server-ip> \
+  -e TURN_EXTERNAL_IP=<server-ip> \
   -e SELKIES_TURN_PORT=3478 -e SELKIES_TURN_PROTOCOL=tcp \
   -e TURN_MIN_PORT=65000 -e TURN_MAX_PORT=65019 \
   -p 8080:8080 -p 7447:7447 -p 3478:3478/tcp -p 3478:3478/udp \
@@ -122,67 +122,67 @@ docker run -d --rm --name selkies-0 \
   selkies-ros
 ```
 
-Detalles importantes:
+Important details:
 
-- **`SELKIES_TURN_HOST` / `TURN_EXTERNAL_IP`**: la dirección del repetidor de vídeo (TURN, ver [[#Cómo llega el vídeo: WebRTC y TURN]]). Por defecto Selkies pone la **IP pública** del servidor, que en una red universitaria es la del NAT del campus y el navegador no puede alcanzar. `run.sh` la fija a la IP local del servidor.
-- **`SELKIES_ENABLE_HTTPS=true`**: así la contraseña no viaja en claro. El certificado es autofirmado y el navegador avisa la primera vez.
-- **`--memory` y `--cpus`** limitan RAM y CPU. La **VRAM no se puede limitar**: todas las sesiones comparten los 12 GB.
+- **`SELKIES_TURN_HOST` / `TURN_EXTERNAL_IP`**: the address of the video relay (TURN, see [[#How the video gets through: WebRTC and TURN]]). By default Selkies uses the server's **public IP**, which on a university network is the campus NAT's and the browser cannot reach it. `run.sh` sets it to the server's local IP.
+- **`SELKIES_ENABLE_HTTPS=true`**: so the password does not travel in clear text. The certificate is self-signed and the browser warns the first time.
+- **`--memory` and `--cpus`** limit RAM and CPU. **VRAM cannot be limited**: all sessions share the 12 GB.
 
-Parar la sesión: `./run.sh stop 0`.
+Stop the session: `./run.sh stop 0`.
 
-## 5. Más de una persona
+## 5. More than one person
 
-Selkies no tiene portal ni login multiusuario: **una sesión es un contenedor**. Para varias personas, se lanza un contenedor por persona con puertos distintos:
+Selkies has no portal or multi-user login: **one session is one container**. For several people, one container per person is launched with different ports:
 
 ```bash
-./run.sh 0      # contraseña sjk005-seminar-user-0
-./run.sh 1      # contraseña sjk005-seminar-user-1
+./run.sh 0      # password sjk005-seminar-user-0
+./run.sh 1      # password sjk005-seminar-user-1
 ./run.sh 2      # ...
 ```
 
-| Puerto | Sesión `n` | Sesión 0 | Sesión 1 | Protocolo |
+| Port | Session `n` | Session 0 | Session 1 | Protocol |
 |---|---|---|---|---|
-| Web (escritorio) | 8080 + n | 8080 | 8081 | TCP |
+| Web (desktop) | 8080 + n | 8080 | 8081 | TCP |
 | Zenoh (ROS 2) | 7447 + n | 7447 | 7448 | TCP |
-| TURN (vídeo) | 3478 + n | 3478 | 3479 | TCP y UDP |
-| Relay TURN | 65000 + 20n … +19 | 65000–65019 | 65020–65039 | UDP |
+| TURN (video) | 3478 + n | 3478 | 3479 | TCP and UDP |
+| TURN relay | 65000 + 20n … +19 | 65000–65019 | 65020–65039 | UDP |
 
-Cada contenedor tiene **su escritorio, su Gazebo y su router Zenoh**, así que los usuarios no se ven entre sí. Comprobado: con `diff_drive` abierto en la sesión 0, `ros2 topic list` en la sesión 1 no muestra `/odom` ni `/cmd_vel`.
+Each container has **its own desktop, its own Gazebo and its own Zenoh router**, so users do not see each other. Verified: with `diff_drive` open in session 0, `ros2 topic list` in session 1 does not show `/odom` or `/cmd_vel`.
 
-Uso medido de GPU con 2 sesiones y un Gazebo abierto: **~620 MiB de 12 GB** (Gazebo GUI ~290 MiB). Con mundos sencillos caben varias sesiones; con cámaras y LiDAR, menos. Conviene vigilarlo con `watch -n1 nvidia-smi`.
+Measured GPU usage with 2 sessions and one Gazebo open: **~620 MiB of 12 GB** (Gazebo GUI ~290 MiB). With simple worlds several sessions fit; with cameras and LiDAR, fewer. It is worth keeping an eye on it with `watch -n1 nvidia-smi`.
 
-> **Lo que falta frente a una plataforma completa:** no hay portal para que cada usuario lance su sesión, ni login centralizado, ni caducidad automática. Lo hace el administrador a mano con `run.sh`. Para eso existen plataformas como [[02-Kasm-Workspaces|Kasm Workspaces]].
+> **What is missing compared to a full platform:** there is no portal for each user to launch their own session, no centralised login and no automatic expiry. The administrator does it by hand with `run.sh`. That is what platforms such as [[02-Kasm-Workspaces|Kasm Workspaces]] exist for.
 
-## 6. Puertos y red
+## 6. Ports and network
 
-### Cómo llega el vídeo: WebRTC y TURN
+### How the video gets through: WebRTC and TURN
 
-Selkies envía el escritorio como **vídeo WebRTC**, la misma tecnología que Google Meet o Discord. WebRTC intenta primero mandar el vídeo **directo** del emisor al receptor: cada lado le dice al otro "estoy en esta dirección, mándamelo aquí".
+Selkies sends the desktop as **WebRTC video**, the same technology as Google Meet or Discord. WebRTC first tries to send the video **directly** from sender to receiver: each side tells the other "I am at this address, send it to me here".
 
-Aquí eso no funciona: el emisor está **dentro de un contenedor Docker**, con una dirección interna (`172.17.0.x`) que solo existe dentro del PC servidor. El portátil no puede llegar a ella.
+Here that does not work: the sender is **inside a Docker container**, with an internal address (`172.17.0.x`) that only exists inside the server PC. The laptop cannot reach it.
 
-La solución estándar es **TURN**, un **repetidor de vídeo**. Es un pequeño servidor (coturn, ya incluido en la imagen de Selkies) al que los dos lados sí llegan: el contenedor le manda el vídeo y el navegador lo recoge de ahí.
+The standard solution is **TURN**, a **video relay**. It is a small server (coturn, already included in the Selkies image) that both sides can reach: the container sends it the video and the browser picks it up from there.
 
 ```
-Sin TURN:
-  contenedor (172.17.0.x) ──X──> navegador
-  (dirección interna: el portátil no llega)
+Without TURN:
+  container (172.17.0.x) ──X──> browser
+  (internal address: the laptop cannot reach it)
 
-Con TURN:
-  contenedor ──> TURN 192.168.10.202:3478 ──> navegador
+With TURN:
+  container ──> TURN 192.168.10.202:3478 ──> browser
 ```
 
-| Pieza | Qué es | Puerto en la sesión 0 |
+| Component | What it is | Port in session 0 |
 |---|---|---|
-| Dirección del repetidor (`SELKIES_TURN_HOST`) | La IP que se le da al navegador para encontrar el TURN | `192.168.10.202` |
-| Puerto TURN | La "puerta de entrada" al repetidor | 3478 (TCP y UDP) |
-| Puertos de relay | Los "canales" que el repetidor abre para cada conexión de vídeo | 65000–65019 (UDP) |
+| Relay address (`SELKIES_TURN_HOST`) | The IP given to the browser to find the TURN server | `192.168.10.202` |
+| TURN port | The "front door" to the relay | 3478 (TCP and UDP) |
+| Relay ports | The "channels" the relay opens for each video connection | 65000–65019 (UDP) |
 
-Por culpa de Docker, **el vídeo pasa siempre por TURN**, también en la red local. Cada conexión de vídeo gasta 2 canales y las que fallan tardan unos minutos en liberarlos, así que hay que dejar margen: por eso `run.sh` reserva **20 canales por sesión**.
+Because of Docker, **the video always goes through TURN**, even on the local network. Each video connection uses 2 channels and failed ones take a few minutes to release them, so you need to leave some headroom: that is why `run.sh` reserves **20 channels per session**.
 
-### Desde la misma red
+### From the same network
 
-Basta con que el portátil llegue a la IP del servidor. Comprobación rápida desde el portátil:
+It is enough for the laptop to reach the server's IP. Quick check from the laptop:
 
 ```bash
 nc -vz 192.168.10.202 8080    # web
@@ -190,23 +190,23 @@ nc -vz 192.168.10.202 7447    # Zenoh
 nc -vz 192.168.10.202 3478    # TURN
 ```
 
-### Desde fuera, con Tailscale
+### From outside, with Tailscale
 
-Probado desde otra red, con el portátil en Tailscale y un nodo que hace de **subnet router** hacia `192.168.10.0/24`. Las URL y los endpoints son los mismos (`192.168.10.202`).
+Tested from another network, with the laptop on Tailscale and a node acting as **subnet router** towards `192.168.10.0/24`. The URLs and endpoints are the same (`192.168.10.202`).
 
-No hace falta nada especial: el repetidor TURN está en `192.168.10.202`, que es alcanzable por Tailscale igual que la web y Zenoh.
+Nothing special is needed: the TURN relay is at `192.168.10.202`, which is reachable through Tailscale just like the web and Zenoh.
 
-**Problema que encontramos aquí:** al principio `run.sh` reservaba solo 2 canales de relay por sesión. En la red local bastaron, porque la primera conexión los encontró libres. Por Tailscale hubo reconexiones, los canales se agotaron y el log de TURN mostraba `ALLOCATE ... error 508: Cannot create socket`: la web se reconectaba cada pocos segundos sin mostrar el escritorio. Se solucionó ampliando a 20 canales por sesión.
+**Problem we ran into here:** at first `run.sh` reserved only 2 relay channels per session. On the local network they were enough, because the first connection found them free. Over Tailscale there were reconnections, the channels ran out and the TURN log showed `ALLOCATE ... error 508: Cannot create socket`: the web page reconnected every few seconds without showing the desktop. It was fixed by increasing to 20 channels per session.
 
-## 7. Conectar los nodos ROS 2 del usuario por Zenoh
+## 7. Connecting the user's ROS 2 nodes over Zenoh
 
-Requisito en el portátil: ROS 2 **Jazzy** y Zenoh.
+Requirement on the laptop: ROS 2 **Jazzy** and Zenoh.
 
 ```bash
 sudo apt install ros-jazzy-rmw-zenoh-cpp
 ```
 
-**Terminal 1**: router Zenoh local conectado al router de su sesión (puerto 7447 + n):
+**Terminal 1**: local Zenoh router connected to the router of your session (port 7447 + n):
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -214,96 +214,96 @@ export ZENOH_CONFIG_OVERRIDE='connect/endpoints=["tcp/192.168.10.202:7447"]'
 ros2 run rmw_zenoh_cpp rmw_zenohd
 ```
 
-**Terminal 2 y siguientes**: los nodos de siempre, cambiando solo el RMW:
+**Terminal 2 onwards**: your usual nodes, changing only the RMW:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-export RMW_IMPLEMENTATION=rmw_zenoh_cpp      # mejor en el ~/.bashrc
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp      # best in ~/.bashrc
 
-ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}, angular: {z: 0.3}}" # ejemplo para hacer girar al robot
+ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}, angular: {z: 0.3}}" # example to make the robot turn
 ```
 
 
 
-¿Por qué un router local? Con `rmw_zenoh`, cada nodo busca un router en `localhost:7447`. Si ese router está conectado al del servidor, **todas** las herramientas (`ros2 topic`, `ros2 launch`, `rviz2`, nodos propios…) funcionan sin configurar nada más. Si los nodos usan el tiempo de simulación, arrancarlos con `use_sim_time:=true`, porque `/clock` llega desde Gazebo.
+Why a local router? With `rmw_zenoh`, each node looks for a router at `localhost:7447`. If that router is connected to the server's, **all** tools (`ros2 topic`, `ros2 launch`, `rviz2`, your own nodes…) work without any further configuration. If the nodes use simulation time, start them with `use_sim_time:=true`, because `/clock` comes from Gazebo.
 
-## 8. Comandos para probar
+## 8. Commands to try
 
-### En el navegador
+### In the browser
 
-1. Abrir `https://192.168.10.202:8080`, aceptar el aviso del certificado y entrar con `ubuntu` / `sjk005-seminar-user-0`.
-2. Doble clic en **Gazebo: diff_drive** (o abrir una terminal en el escritorio y escribir `sim diff_drive`).
+1. Open `https://192.168.10.202:8080`, accept the certificate warning and log in with `ubuntu` / `sjk005-seminar-user-0`.
+2. Double-click **Gazebo: diff_drive** (or open a terminal on the desktop and type `sim diff_drive`).
 
-### En el portátil (con el router de la terminal 1 en marcha)
+### On the laptop (with the router from terminal 1 running)
 
 ```bash
-# Topics de la sesión: /clock /cmd_vel /odom ...
+# Session topics: /clock /cmd_vel /odom ...
 ros2 topic list
 
-# Odometría del coche
+# Car odometry
 ros2 topic echo /odom --once
 
-# Moverlo (Ctrl+C para cortar el envío)
+# Move it (Ctrl+C to stop publishing)
 ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist \
   "{linear: {x: 0.5}, angular: {z: 0.3}}"
 
-# Pararlo (mantiene la última velocidad recibida)
+# Stop it (it keeps the last velocity received)
 ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{}"
 
-# Manejarlo con el teclado
+# Drive it with the keyboard
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
 
-El coche azul se mueve en la pestaña del navegador.
+The blue car moves in the browser tab.
 
-### Aislamiento entre usuarios (en el portátil)
+### Isolation between users (on the laptop)
 
-Con Gazebo abierto solo en la sesión 0, parar el router de la terminal 1 y conectarlo a la **sesión 1** (puerto 7448):
+With Gazebo open only in session 0, stop the router from terminal 1 and connect it to **session 1** (port 7448):
 
 ```bash
 export ZENOH_CONFIG_OVERRIDE='connect/endpoints=["tcp/192.168.10.202:7448"]'
 ros2 run rmw_zenoh_cpp rmw_zenohd
 ```
 
-En la terminal 2, `ros2 topic list` ya no muestra `/odom` ni `/cmd_vel`: cada usuario solo ve los topics de su propia sesión.
+In terminal 2, `ros2 topic list` no longer shows `/odom` or `/cmd_vel`: each user only sees the topics of their own session.
 
-### Comprobaciones del administrador (opcional, en el PC servidor)
+### Administrator checks (optional, on the server PC)
 
-**No hacen falta para usar la demo.** Sirven para demostrar que la GPU que trabaja es la del servidor y para diagnosticar problemas. Se escriben en una terminal del PC servidor. Los que empiezan por `docker exec selkies-0` ejecutan la orden *dentro* del contenedor de la sesión 0.
+**They are not needed to use the demo.** They are useful to show that the GPU doing the work is the server's and to diagnose problems. They are typed in a terminal on the server PC. Those starting with `docker exec selkies-0` run the command *inside* the session 0 container.
 
 ```bash
-# Qué sesiones hay en marcha
+# Which sessions are running
 docker ps --filter name=selkies
 
-# Uso de la GPU: con Gazebo abierto aparece "gz sim gui"
+# GPU usage: with Gazebo open, "gz sim gui" appears
 watch -n1 nvidia-smi
 
-# Qué GPU renderiza: debe decir NVIDIA GeForce RTX 3060
+# Which GPU renders: it should say NVIDIA GeForce RTX 3060
 docker exec selkies-0 vglrun -d egl glxinfo -B | grep renderer
 
-# Servicios del contenedor (zenohd incluido)
+# Container services (zenohd included)
 docker exec selkies-0 supervisorctl status
 
-# Log del vídeo (WebRTC y TURN)
+# Video log (WebRTC and TURN)
 docker exec selkies-0 tail -f /tmp/selkies-gstreamer-entrypoint.log
 
-# Log del router Zenoh
+# Zenoh router log
 docker exec selkies-0 tail -f /tmp/zenohd.log
 ```
 
-## 9. Limitaciones
+## 9. Limitations
 
-- **Un usuario por contenedor**: el multiusuario se hace a mano. Sin portal, sin cuentas, sin caducidad automática.
-- **La VRAM no se aísla**: un usuario con un mundo pesado puede dejar sin memoria a los demás.
-- Seguridad de demo: contraseñas predecibles (`sjk005-seminar-user-n`) y certificado autofirmado. Válido en una red de confianza, **no para exponer a Internet**.
-- Los usuarios tienen un terminal con `sudo` (falso) dentro del contenedor y salida a Internet: dar acceso solo a gente de confianza.
-- Ambos lados deben usar la misma distribución de ROS 2.
-- La imagen 24.04 es la generación anterior de Selkies: funciona, pero ya no recibe las novedades.
+- **One user per container**: multi-user is done by hand. No portal, no accounts, no automatic expiry.
+- **VRAM is not isolated**: a user with a heavy world can leave the others without memory.
+- Demo-grade security: predictable passwords (`sjk005-seminar-user-n`) and a self-signed certificate. Fine on a trusted network, **not for exposing to the Internet**.
+- Users have a terminal with (fake) `sudo` inside the container and Internet access: only give access to trusted people.
+- Both sides must use the same ROS 2 distribution.
+- The 24.04 image is the previous Selkies generation: it works, but it no longer receives new features.
 
-## Fuentes
+## Sources
 
 - [selkies-project/docker-nvidia-egl-desktop](https://github.com/selkies-project/docker-nvidia-egl-desktop)
-- [Selkies (organización en GitHub)](https://github.com/selkies-project)
+- [Selkies (GitHub organisation)](https://github.com/selkies-project)
 - [rmw_zenoh](https://github.com/ros2/rmw_zenoh)
 - [ros_gz_bridge](https://github.com/gazebosim/ros_gz/tree/jazzy/ros_gz_bridge)
-- [National Research Platform: GUI desktop (Selkies en un clúster académico)](https://docs.nationalresearchplatform.org/userdocs/running/gui-desktop)
+- [National Research Platform: GUI desktop (Selkies on an academic cluster)](https://docs.nationalresearchplatform.org/userdocs/running/gui-desktop)
